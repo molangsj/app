@@ -1,0 +1,281 @@
+<!-- res/layout/fragment_add_edit_medicine.xml -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/add_medicine"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- 타이틀 -->
+        <TextView
+            android:id="@+id/add_medicine_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="복용 약 추가"
+            android:textStyle="bold"
+            android:textSize="35sp"
+            android:textColor="#A67F6F"
+            android:layout_marginTop="30dp"
+            android:layout_marginLeft="15dp"
+            android:layout_marginBottom="30dp"/>
+
+        <!-- 약 이름 입력 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/imgSelectedIcon"
+                android:src="@drawable/icon_camera"
+                android:layout_marginLeft="20dp"
+                android:layout_marginRight="15dp"
+                android:layout_width="60dp"
+                android:layout_height="60dp"/>
+            <EditText
+                android:id="@+id/add_medicine_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="약 이름"
+                android:layout_marginRight="20dp"
+                android:inputType="text"
+                android:textSize="16sp"
+                android:padding="16dp"/>
+        </LinearLayout>
+
+        <!-- 카테고리 선택 버튼 -->
+        <LinearLayout
+            android:id="@+id/add_medicine_container1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/add_medicine_btn_prescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="의료용 의약품"
+                android:padding="12dp"/>
+
+            <Button
+                android:id="@+id/add_medicine_btn_non_prescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="일반 의약품"
+                android:padding="12dp"
+                android:layout_marginStart="8dp"/>
+        </LinearLayout>
+
+        <!-- 카테고리 선택 Spinner 컨테이너 -->
+        <LinearLayout
+            android:id="@+id/container_category_selection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="20dp">
+
+            <TextView
+                android:id="@+id/tv_select_category_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="카테고리를 선택하세요"
+                android:textSize="16sp"
+                android:textColor="#000000"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- 의료용 의약품 카테고리용 Spinner -->
+            <Spinner
+                android:id="@+id/spinner_prescription_categories"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"/>
+
+            <!-- 일반 의약품 카테고리용 Spinner -->
+            <Spinner
+                android:id="@+id/spinner_non_prescription_categories"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"/>
+        </LinearLayout>
+
+        <!-- 요일 선택 -->
+        <LinearLayout
+            android:id="@+id/days_of_week_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <!-- 요일별 ToggleButton -->
+            <ToggleButton
+                android:id="@+id/toggle_mon"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textOn="월"
+                android:textOff="월"
+                android:checked="true"
+                android:background="@drawable/toggle_button_background"
+                android:textColor="@drawable/toggle_button_text_color"
+                android:textSize="16sp"
+                android:layout_margin="4dp"/>
+
+            <ToggleButton
+                android:id="@+id/toggle_tue"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textOn="화"
+                android:textOff="화"
+                android:checked="true"
+                android:background="@drawable/toggle_button_background"
+                android:textColor="@drawable/toggle_button_text_color"
+                android:textSize="16sp"
+                android:layout_margin="4dp"/>
+
+            <ToggleButton
+                android:id="@+id/toggle_wed"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textOn="수"
+                android:textOff="수"
+                android:checked="true"
+                android:background="@drawable/toggle_button_background"
+                android:textColor="@drawable/toggle_button_text_color"
+                android:textSize="16sp"
+                android:layout_margin="4dp"/>
+
+            <ToggleButton
+                android:id="@+id/toggle_thu"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textOn="목"
+                android:textOff="목"
+                android:checked="true"
+                android:background="@drawable/toggle_button_background"
+                android:textColor="@drawable/toggle_button_text_color"
+                android:textSize="16sp"
+                android:layout_margin="4dp"/>
+
+            <ToggleButton
+                android:id="@+id/toggle_fri"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textOn="금"
+                android:textOff="금"
+                android:checked="true"
+                android:background="@drawable/toggle_button_background"
+                android:textColor="@drawable/toggle_button_text_color"
+                android:textSize="16sp"
+                android:layout_margin="4dp"/>
+
+            <ToggleButton
+                android:id="@+id/toggle_sat"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textOn="토"
+                android:textOff="토"
+                android:checked="true"
+                android:background="@drawable/toggle_button_background"
+                android:textColor="@drawable/toggle_button_text_color"
+                android:textSize="16sp"
+                android:layout_margin="4dp"/>
+
+            <ToggleButton
+                android:id="@+id/toggle_sun"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textOn="일"
+                android:textOff="일"
+                android:checked="true"
+                android:background="@drawable/toggle_button_background"
+                android:textColor="@drawable/toggle_button_text_color"
+                android:textSize="16sp"
+                android:layout_margin="4dp"/>
+        </LinearLayout>
+
+        <!-- 복약 시간 선택 버튼 및 알림 추가 버튼 -->
+        <LinearLayout
+            android:id="@+id/timeSettingContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="20dp">
+
+            <!-- 복약 시간 선택 버튼 (힌트 버튼) -->
+            <Button
+                android:id="@+id/btn_select_alarm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="복약 시간을 선택하세요!"
+                android:textColor="@color/colorOnPrimary"
+                android:background="@drawable/radius_button_90"
+                android:layout_marginBottom="10dp"
+                android:padding="12dp"/>
+
+            <!-- 알림 추가 버튼 -->
+            <Button
+                android:id="@+id/add_notification_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+ 알림 추가"
+                android:textColor="#A67F6F"
+                android:backgroundTint="@android:color/white"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="10dp"/>
+        </LinearLayout>
+
+        <!-- 밑줄 표시를 위한 레이아웃 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp">
+        </LinearLayout>
+
+        <!-- 메모 입력 -->
+        <EditText
+            android:id="@+id/add_medication_caution"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="주의사항"
+            android:inputType="textMultiLine"
+            android:privateImeOptions="defaultInputmode=hangul"
+            android:minLines="3"
+            android:layout_marginTop="20dp"/>
+
+        <EditText
+            android:id="@+id/add_medicine_memo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="메모"
+            android:inputType="textMultiLine"
+            android:privateImeOptions="defaultInputmode=hangul"
+            android:minLines="3"
+            android:layout_marginTop="20dp"/>
+
+        <!-- 저장 버튼 -->
+        <Button
+            android:id="@+id/add_medicine_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:background="@drawable/radius_button_90"
+            android:backgroundTint="#C4A8A8"
+            android:textStyle="bold"
+            android:text="저장"
+            android:layout_gravity="center_horizontal"/>
+    </LinearLayout>
+</ScrollView>

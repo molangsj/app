@@ -1,0 +1,50 @@
+<!-- app/src/main/res/layout/item_medicine.xml -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground">
+
+    <ImageView
+        android:id="@+id/imgMedicineIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/pill_default"
+        android:layout_marginEnd="15dp"
+        android:padding="10dp"
+        android:contentDescription="약 아이콘" />
+
+    <!-- 약 이름 -->
+    <TextView
+        android:id="@+id/tvMedicineName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="약 이름"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_weight="1"
+        android:layout_marginLeft="20dp"/>
+
+    <!-- 알람 토글 아이콘 -->
+    <ImageButton
+        android:id="@+id/btnAlarmToggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_bell"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:contentDescription="알람 토글"
+    android:layout_marginEnd="8dp" />
+
+    <!-- 즐겨찾기 토글 아이콘 -->
+    <ImageButton
+        android:id="@+id/btnFavoriteToggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_favorite_border"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:contentDescription="즐겨찾기 토글" />
+
+</LinearLayout>

@@ -1,0 +1,114 @@
+<!-- app/src/main/res/layout/dialog_medicine_detail_bottom_sheet.xml -->
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/medicine_detail_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <Button
+            android:id="@+id/editMedicine"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="편집"
+            android:layout_gravity="right"
+            android:background="@color/white"
+            android:textColor="@color/colorPrimaryVariant"/>
+
+        <!-- 주/일 수 표시 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="복용 횟수"
+            android:textSize="20sp"
+            android:layout_margin="10dp"/>
+        <TextView
+            android:layout_marginLeft="10dp"
+            android:id="@+id/tvWeekDayCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ㅁ 주 1일 복용"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- 알람 시간 목록 -->
+        <TextView
+            android:id="@+id/tvAlarmTimesLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="알람 시간:"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginLeft="10dp"/>
+
+        <LinearLayout
+            android:id="@+id/layoutAlarmTimes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp"
+            android:layout_marginLeft="10dp">
+
+        </LinearLayout>
+
+        <!-- 주의사항 입력 -->
+        <TextView
+            android:id="@+id/tvNotesLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="주의사항:"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_margin="10dp"/>
+
+        <EditText
+            android:id="@+id/etNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="주의사항을 입력하세요."
+            android:inputType="textMultiLine"
+            android:lines="3"
+            android:gravity="top"
+            android:layout_marginBottom="10dp"
+            android:layout_marginLeft="10dp"/>
+
+        <!-- 부작용 입력 -->
+        <TextView
+            android:id="@+id/tvSideEffectsLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="부작용:"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_margin="10dp"/>
+
+        <EditText
+            android:id="@+id/etCaution"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="부작용을 입력하세요."
+            android:inputType="textMultiLine"
+            android:lines="3"
+            android:gravity="top"
+            android:layout_marginBottom="16dp"
+            android:layout_marginLeft="10dp"/>
+
+        <!-- 저장 버튼 -->
+        <Button
+            android:layout_gravity="center"
+            android:id="@+id/btnSaveDetails"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="@color/colorPrimaryVariant"
+            android:background="@drawable/radius_button_90"
+            android:text="저장" />
+
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,107 @@
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/medicine_detail_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tvWeekDayCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="주 1일"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- 알람 시간 목록 -->
+        <TextView
+            android:id="@+id/tvAlarmTimesLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="알람 시간:"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <LinearLayout
+            android:id="@+id/layoutAlarmTimes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+            <!-- 알람 시간 TextView가 동적으로 추가됩니다 -->
+        </LinearLayout>
+
+        <!-- 새로운 알람 시간 입력 -->
+        <EditText
+            android:id="@+id/etNewAlarmTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="새로운 알람 시간을 입력하세요 (HH:MM)"
+            android:inputType="time"
+            android:layout_marginBottom="8dp" />
+
+        <!-- 알람 시간 추가 버튼 -->
+        <Button
+            android:id="@+id/btnAddAlarmTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="알람 시간 추가"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 주의사항 입력 -->
+        <TextView
+            android:id="@+id/tvNotesLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="주의사항:"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="주의사항을 입력하세요."
+            android:inputType="textMultiLine"
+            android:lines="3"
+            android:gravity="top"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 부작용 입력 -->
+        <TextView
+            android:id="@+id/tvSideEffectsLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="부작용:"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etSideEffects"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="부작용을 입력하세요."
+            android:inputType="textMultiLine"
+            android:lines="3"
+            android:gravity="top"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 저장 버튼 -->
+        <Button
+            android:id="@+id/btnSaveDetails"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="저장" />
+
+    </LinearLayout>
+</ScrollView>

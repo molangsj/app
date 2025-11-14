@@ -1,0 +1,50 @@
+<!-- app/src/main/res/layout/fragment_medicine_list.xml -->
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/medicine_list_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <!-- 헤더 TextView -->
+    <TextView
+        android:id="@+id/headerTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="복용 약 목록"
+        android:textSize="30sp"
+        android:layout_alignParentTop="true"
+        android:layout_margin="10dp"/>
+
+    <!-- RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/medicine_recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_below="@id/headerTextView"
+        android:layout_above="@id/add_medicine_button"
+        android:layout_marginTop="10dp"/>
+
+    <!-- 빈 리스트 표시 TextView -->
+    <TextView
+        android:id="@+id/emptyTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="복용할 약이 없습니다. 약을 추가해보세요!"
+        android:textSize="16sp"
+        android:textColor="#A67F6F"
+        android:layout_centerInParent="true"
+        android:visibility="gone"/>
+
+    <!-- FloatingActionButton (FAB) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/add_medicine_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_add"
+        android:contentDescription="약 추가" />
+
+</RelativeLayout>
