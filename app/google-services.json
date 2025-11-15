@@ -1,44 +1,26 @@
 {
   "project_info": {
-    "project_number": "879178919175",
-    "project_id": "project1-c150f",
-    "storage_bucket": "project1-c150f.firebasestorage.app"
+    "project_number": "563707277148",
+    "project_id": "app-letsgo",
+    "storage_bucket": "app-letsgo.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:879178919175:android:bf8271bf304d51300029a2",
+        "mobilesdk_app_id": "1:563707277148:android:1e610030bc0935574a1b99",
         "android_client_info": {
           "package_name": "com.example.project1"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "879178919175-599d14aj68hpbrv8tsud24dh4iuvqqrm.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.project1",
-            "certificate_hash": "a9debf70b5486b1159647f520c77ca17f9e05024"
-          }
-        },
-        {
-          "client_id": "879178919175-oelvec36r87ii2g7caqne3bjlpp96lso.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCSIw1E3rF5gFt4mwJmnFzlqaSYhkctqXk"
+          "current_key": "AIzaSyAUZ0jwR9vBJh8HcTX24PpfJ1ufRdNZtss"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "879178919175-oelvec36r87ii2g7caqne3bjlpp96lso.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
