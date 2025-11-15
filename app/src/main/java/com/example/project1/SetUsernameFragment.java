@@ -5,6 +5,7 @@ package com.example.project1;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,13 +17,17 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 public class SetUsernameFragment extends Fragment {
 
+    private static final String TAG = "SetUsernameFragment";
+
     private EditText etUsername;
     private Button btnSetUsername;
     private AuthHelper authHelper;
+    private FirestoreHelper firestoreHelper;
     private String email;
     private String uid;
     private OnUsernameSetListener usernameSetListener;
@@ -47,9 +52,6 @@ public class SetUsernameFragment extends Fragment {
             usernameSetListener = (OnUsernameSetListener) context;
         } else if (getTargetFragment() instanceof OnUsernameSetListener) {
             usernameSetListener = (OnUsernameSetListener) getTargetFragment();
-        } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnUsernameSetListener");
         }
     }
 
@@ -63,11 +65,14 @@ public class SetUsernameFragment extends Fragment {
         btnSetUsername = view.findViewById(R.id.btnSetUsername);
 
         authHelper = new AuthHelper(requireActivity());
+        firestoreHelper = new FirestoreHelper();
 
         if (getArguments() != null) {
             email = getArguments().getString("email");
             uid = getArguments().getString("uid");
         }
+
+        Log.d(TAG, "Email: " + email + ", UID: " + uid);
 
         if (email == null || uid == null) {
             Toast.makeText(getActivity(), "유저 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show();
@@ -83,18 +88,31 @@ public class SetUsernameFragment extends Fragment {
                 return;
             }
 
+            Log.d(TAG, "Username 설정 시도: " + usernameInput);
+            btnSetUsername.setEnabled(false);
+
             // username으로 문서 생성
-            authHelper.setUsername(usernameInput, email, uid, new FirestoreHelper.SetUsernameCallback() {
+            firestoreHelper.setUsername(usernameInput, email, uid, new FirestoreHelper.SetUsernameCallback() {
                 @Override
                 public void onSetUsernameSuccess() {
+                    Log.d(TAG, "Username 설정 성공!");
                     Toast.makeText(getActivity(), "사용자 이름이 설정되었습니다.", Toast.LENGTH_SHORT).show();
-                    usernameSetListener.onUsernameSet(usernameInput);
-                    // 여기서 username 설정 후 MedicineList나 원하는 화면으로 이동하는 로직을 Listener 구현부에 작성
+
+                    if (usernameSetListener != null) {
+                        usernameSetListener.onUsernameSet(usernameInput);
+                    } else {
+                        // Listener가 없으면 로그인 화면으로 이동
+                        getParentFragmentManager().beginTransaction()
+                                .replace(R.id.test_fragment_container, new FamilyLogin2())
+                                .commit();
+                    }
                 }
 
                 @Override
                 public void onSetUsernameFailed(Exception e) {
-                    Toast.makeText(getActivity(), "사용자 이름 설정 실패: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Username 설정 실패", e);
+                    btnSetUsername.setEnabled(true);
+                    Toast.makeText(getActivity(), "사용자 이름 설정 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 }
             });
         });

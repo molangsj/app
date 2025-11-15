@@ -31,15 +31,15 @@ public class FirestoreHelper {
         db = FirebaseFirestore.getInstance();
     }
 
-    // 날짜 메타데이터를 FamilyMember 문서에 추가하는 메서드 (username 문서에 필드 추가)
+    // ë‚ ì§œ ë©”íƒ€ë°ì´í„°ë¥¼ FamilyMember ë¬¸ì„œì— ì¶”ê°€í•˜ëŠ” ë©”ì„œë“œ (username ë¬¸ì„œì— í•„ë“œ ì¶”ê°€)
     public void addDateToFamilyMember(
             String username,
             String dateStr,
             StatusCallback callback
     ) {
         if (username == null || dateStr == null) {
-            Log.e("FirestoreHelper", "username 또는 dateStr이 null입니다.");
-            callback.onStatusUpdateFailed(new IllegalArgumentException("필수 필드가 null입니다."));
+            Log.e("FirestoreHelper", "username ë˜ëŠ” dateStrì´ nullìž…ë‹ˆë‹¤.");
+            callback.onStatusUpdateFailed(new IllegalArgumentException("í•„ìˆ˜ í•„ë“œê°€ nullìž…ë‹ˆë‹¤."));
             return;
         }
 
@@ -51,17 +51,17 @@ public class FirestoreHelper {
 
         familyMemberRef.update(dateField)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d("FirestoreHelper", "날짜 필드가 성공적으로 추가되었습니다: " + dateStr);
+                    Log.d("FirestoreHelper", "ë‚ ì§œ í•„ë“œê°€ ì„±ê³µì ìœ¼ë¡œ ì¶”ê°€ë˜ì—ˆìŠµë‹ˆë‹¤: " + dateStr);
                     callback.onStatusUpdated();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("FirestoreHelper", "날짜 필드 추가에 실패했습니다: " + dateStr, e);
+                    Log.e("FirestoreHelper", "ë‚ ì§œ í•„ë“œ ì¶”ê°€ì— ì‹¤íŒ¨í–ˆìŠµë‹ˆë‹¤: " + dateStr, e);
                     callback.onStatusUpdateFailed(e);
                 });
     }
 
 
-    // UID로 user 문서 조회: username 문서가 존재하는지 확인하기 위해 uid 필드로 검색
+    // UIDë¡œ user ë¬¸ì„œ ì¡°íšŒ: username ë¬¸ì„œê°€ ì¡´ìž¬í•˜ëŠ”ì§€ í™•ì¸í•˜ê¸° ìœ„í•´ uid í•„ë“œë¡œ ê²€ìƒ‰
     public void getUserDocumentByUid(String uid, UserDataCallback callback) {
         if (uid == null || uid.isEmpty()) {
             callback.onUserDataFailed(new IllegalArgumentException("UID must not be null or empty"));
@@ -88,7 +88,7 @@ public class FirestoreHelper {
                 });
     }
 
-    // 이메일로 사용자 문서 조회
+    // ì´ë©”ì¼ë¡œ ì‚¬ìš©ìž ë¬¸ì„œ ì¡°íšŒ
     public void getUserDocumentByEmail(String email, UserDataCallback callback) {
         if (email == null || email.isEmpty()) {
             callback.onUserDataFailed(new IllegalArgumentException("Email must not be null or empty"));
@@ -137,7 +137,7 @@ public class FirestoreHelper {
                 });
     }
 
-    // UID 기반 사용자 데이터 가져오기(문서 ID=username)
+    // UID ê¸°ë°˜ ì‚¬ìš©ìž ë°ì´í„° ê°€ì ¸ì˜¤ê¸°(ë¬¸ì„œ ID=username)
     public void getUserDataByUID(String uid, UserDataCallback callback) {
         if (uid == null || uid.isEmpty()) {
             Log.e("FirestoreHelper", "UID is null or empty");
@@ -162,8 +162,8 @@ public class FirestoreHelper {
                 });
     }
 
-    // 가입 시 UID를 문서 ID로 임시 생성
-    // 이 문서는 username 설정 전까지 임시 저장용
+    // ê°€ìž… ì‹œ UIDë¥¼ ë¬¸ì„œ IDë¡œ ìž„ì‹œ ìƒì„±
+    // ì´ ë¬¸ì„œëŠ” username ì„¤ì • ì „ê¹Œì§€ ìž„ì‹œ ì €ìž¥ìš©
     public void addNewUserWithoutUsername(FirebaseUser user, StatusCallback callback) {
         if (user == null) {
             callback.onStatusUpdateFailed(new IllegalArgumentException("User cannot be null"));
@@ -185,7 +185,7 @@ public class FirestoreHelper {
                         Log.d("FirestoreHelper", "User document already exists for UID: " + uid);
                         callback.onStatusUpdateFailed(new Exception("User document already exists"));
                     } else {
-                        // createdAt을 문자열로 저장
+                        // createdAtì„ ë¬¸ìžì—´ë¡œ ì €ìž¥
 //                        String createdAt = getCurrentDateTimeAsString();
                         String createdAt = getCurrentDateAsString();
 
@@ -215,13 +215,13 @@ public class FirestoreHelper {
     }
 
     public static String getCurrentDateAsString() {
-        // SimpleDateFormat을 사용해 날짜 형식을 지정
+        // SimpleDateFormatì„ ì‚¬ìš©í•´ ë‚ ì§œ í˜•ì‹ì„ ì§€ì •
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-        Date now = new Date(); // 현재 날짜와 시간 가져오기
-        return dateFormat.format(now); // 형식에 맞게 변환된 날짜 반환
+        Date now = new Date(); // í˜„ìž¬ ë‚ ì§œì™€ ì‹œê°„ ê°€ì ¸ì˜¤ê¸°
+        return dateFormat.format(now); // í˜•ì‹ì— ë§žê²Œ ë³€í™˜ëœ ë‚ ì§œ ë°˜í™˜
     }
 
-    // 사용자 존재 여부 확인 (UID 기반)
+    // ì‚¬ìš©ìž ì¡´ìž¬ ì—¬ë¶€ í™•ì¸ (UID ê¸°ë°˜)
     public void checkUserExists(String uid, CheckUserCallback callback) {
         db.collection("FamilyMember")
                 .whereEqualTo("uid", uid)
@@ -243,7 +243,7 @@ public class FirestoreHelper {
                 });
     }
 
-    // username 사용 가능 여부 확인 (문서 ID로 바로 확인)
+    // username ì‚¬ìš© ê°€ëŠ¥ ì—¬ë¶€ í™•ì¸ (ë¬¸ì„œ IDë¡œ ë°”ë¡œ í™•ì¸)
     public void isUsernameAvailable(String username, UsernameCallback callback) {
         if (username == null || username.isEmpty()) {
             callback.onUsernameCheckFailed(new IllegalArgumentException("Username must not be null or empty"));
@@ -255,10 +255,10 @@ public class FirestoreHelper {
             if (task.isSuccessful()) {
                 DocumentSnapshot document = task.getResult();
                 if (document.exists()) {
-                    // 이미 해당 username 문서가 존재함
+                    // ì´ë¯¸ í•´ë‹¹ username ë¬¸ì„œê°€ ì¡´ìž¬í•¨
                     callback.onUsernameExists();
                 } else {
-                    // username 문서가 없으므로 사용 가능
+                    // username ë¬¸ì„œê°€ ì—†ìœ¼ë¯€ë¡œ ì‚¬ìš© ê°€ëŠ¥
                     callback.onUsernameAvailable();
                 }
             } else {
@@ -280,26 +280,41 @@ public class FirestoreHelper {
         DocumentReference usernameRef = db.collection("FamilyMember").document(username);
 
         db.runTransaction(transaction -> {
+            // 먼저 username 문서가 이미 존재하는지 확인
             DocumentSnapshot usernameSnapshot = transaction.get(usernameRef);
             if (usernameSnapshot.exists()) {
                 throw new FirebaseFirestoreException("Username 이미 존재합니다: " + username,
                         FirebaseFirestoreException.Code.ALREADY_EXISTS);
             }
 
+            // UID 문서 확인
             DocumentSnapshot uidSnapshot = transaction.get(uidRef);
-            if (!uidSnapshot.exists()) {
-                throw new FirebaseFirestoreException("UID 문서가 존재하지 않습니다: " + uid,
-                        FirebaseFirestoreException.Code.NOT_FOUND);
-            }
 
-            Map<String, Object> uidData = new HashMap<>(uidSnapshot.getData());
-            uidData.put("username", username);
-            if (email != null) {
-                uidData.put("email", email);
-            }
+            Map<String, Object> userData;
 
-            transaction.set(usernameRef, uidData);
-            transaction.delete(uidRef);
+            if (uidSnapshot.exists()) {
+                // UID 문서가 있으면 해당 데이터를 복사
+                userData = new HashMap<>(uidSnapshot.getData());
+                userData.put("username", username);
+                if (email != null) {
+                    userData.put("email", email);
+                }
+
+                // username 문서 생성 및 UID 문서 삭제
+                transaction.set(usernameRef, userData);
+                transaction.delete(uidRef);
+            } else {
+                // UID 문서가 없으면 새로 생성 (로그인 후 처음 username 설정하는 경우)
+                userData = new HashMap<>();
+                userData.put("uid", uid);
+                userData.put("username", username);
+                if (email != null) {
+                    userData.put("email", email);
+                }
+
+                // username 문서만 생성
+                transaction.set(usernameRef, userData);
+            }
 
             return null;
         }).addOnSuccessListener(aVoid -> {
@@ -322,7 +337,7 @@ public class FirestoreHelper {
         });
     }
 
-    // `username`의 유효성 검사
+    // `username`ì˜ ìœ íš¨ì„± ê²€ì‚¬
     private boolean isValidUsername(String username) {
         if (username == null || username.isEmpty() || username.length() > 1500) {
             return false;
@@ -336,7 +351,7 @@ public class FirestoreHelper {
         return true;
     }
 
-    // Firestore에 사용자 문서가 있는지 확인하고 없으면 uid 문서로 생성
+    // Firestoreì— ì‚¬ìš©ìž ë¬¸ì„œê°€ ìžˆëŠ”ì§€ í™•ì¸í•˜ê³  ì—†ìœ¼ë©´ uid ë¬¸ì„œë¡œ ìƒì„±
     public void checkAndCreateUserDocument(FirebaseUser user, StatusCallback callback) {
         if (user == null) {
             Log.e(TAG, "checkAndCreateUserDocument: User is null");
@@ -401,7 +416,7 @@ public class FirestoreHelper {
         DocumentReference pillRef = db.collection("FamilyMember")
                 .document(username)
                 .collection(dateStr)
-                .document("pillName"); // 실제 pillName으로 대체 필요
+                .document("pillName"); // ì‹¤ì œ pillNameìœ¼ë¡œ ëŒ€ì²´ í•„ìš”
 
         pillRef.get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -419,7 +434,7 @@ public class FirestoreHelper {
                 });
     }
 
-    // 약 추가 메서드
+    // ì•½ ì¶”ê°€ ë©”ì„œë“œ
     public void addMedicine(
             String username,
             String pillName,
@@ -431,7 +446,7 @@ public class FirestoreHelper {
             List<String> daysOfWeek,
             MedicationCallback callback
     ) {
-        String dateStr = getCurrentDate(); // 현재 날짜 "yyyyMMdd"
+        String dateStr = getCurrentDate(); // í˜„ìž¬ ë‚ ì§œ "yyyyMMdd"
 
         if (username == null || username.isEmpty() || pillName == null || pillName.isEmpty()) {
             Log.e("FirestoreHelper", "Username or pillName is null or empty");
@@ -456,11 +471,11 @@ public class FirestoreHelper {
 
         for (int i = 0; i < alarmTimes.size() && i < 10; i++) {
             String fieldName = "pillIsChecked" + (i + 1);
-            medicineData.put(fieldName, 0); // 0: 미복용
+            medicineData.put(fieldName, 0); // 0: ë¯¸ë³µìš©
         }
 
-        // pillIsChecked 필드 추가 (하나라도 0이면 0, 모두 복용이면 1)
-        medicineData.put("pillIsChecked", 0); // 기본값을 0으로 설정
+        // pillIsChecked í•„ë“œ ì¶”ê°€ (í•˜ë‚˜ë¼ë„ 0ì´ë©´ 0, ëª¨ë‘ ë³µìš©ì´ë©´ 1)
+        medicineData.put("pillIsChecked", 0); // ê¸°ë³¸ê°’ì„ 0ìœ¼ë¡œ ì„¤ì •
 
         pillRef.set(medicineData)
                 .addOnSuccessListener(aVoid -> {
@@ -486,7 +501,7 @@ public class FirestoreHelper {
                 });
     }
 
-    // 주의사항(caution)만 업데이트하는 새로운 함수
+    // ì£¼ì˜ì‚¬í•­(caution)ë§Œ ì—…ë°ì´íŠ¸í•˜ëŠ” ìƒˆë¡œìš´ í•¨ìˆ˜
     public void updateCaution(String username, String dateStr, String pillName, String caution, StatusCallback callback) {
         if (username == null || dateStr == null || pillName == null) {
             callback.onStatusUpdateFailed(new IllegalArgumentException("Required fields are null"));
@@ -560,11 +575,11 @@ public class FirestoreHelper {
         db.collection("FamilyMember").whereEqualTo("uid", uid).get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (!querySnapshot.isEmpty()) {
-                        // 단일 문서 가정
+                        // ë‹¨ì¼ ë¬¸ì„œ ê°€ì •
                         DocumentSnapshot document = querySnapshot.getDocuments().get(0);
                         String username = document.getId();
                         if (username.equals(uid)) {
-                            callback.onUsernameFailed(new Exception("Username이 설정되지 않았습니다."));
+                            callback.onUsernameFailed(new Exception("Usernameì´ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤."));
                         } else {
                             callback.onUsernameReceived(username);
                         }
@@ -645,7 +660,7 @@ public class FirestoreHelper {
             int alarmIndex,
             StatusCallback callback
     ) {
-        Log.d("FirestoreHelper", "removePillIsChecked 호출됨: username=" + username + ", dateStr=" + dateStr + ", pillName=" + pillName + ", alarmIndex=" + alarmIndex);
+        Log.d("FirestoreHelper", "removePillIsChecked í˜¸ì¶œë¨: username=" + username + ", dateStr=" + dateStr + ", pillName=" + pillName + ", alarmIndex=" + alarmIndex);
 
         DocumentReference pillRef = db.collection("FamilyMember")
                 .document(username)
@@ -653,18 +668,18 @@ public class FirestoreHelper {
                 .document(pillName);
 
         String pillIsCheckedField = "pillIsChecked" + (alarmIndex + 1);
-        Log.d("FirestoreHelper", "업데이트할 필드: " + pillIsCheckedField);
+        Log.d("FirestoreHelper", "ì—…ë°ì´íŠ¸í•  í•„ë“œ: " + pillIsCheckedField);
 
         Map<String, Object> updates = new HashMap<>();
-        updates.put(pillIsCheckedField, 0); // 미복용으로 초기화
+        updates.put(pillIsCheckedField, 0); // ë¯¸ë³µìš©ìœ¼ë¡œ ì´ˆê¸°í™”
 
         pillRef.update(updates)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d("FirestoreHelper", "pillIsChecked 필드가 성공적으로 업데이트됨: " + pillIsCheckedField);
+                    Log.d("FirestoreHelper", "pillIsChecked í•„ë“œê°€ ì„±ê³µì ìœ¼ë¡œ ì—…ë°ì´íŠ¸ë¨: " + pillIsCheckedField);
                     callback.onStatusUpdated();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("FirestoreHelper", "pillIsChecked 필드 업데이트 실패: " + pillIsCheckedField, e);
+                    Log.e("FirestoreHelper", "pillIsChecked í•„ë“œ ì—…ë°ì´íŠ¸ ì‹¤íŒ¨: " + pillIsCheckedField, e);
                     callback.onStatusUpdateFailed(e);
                 });
     }
@@ -785,19 +800,19 @@ public class FirestoreHelper {
                 });
     }
 
-    // 현재 날짜 시간 문자열 반환
+    // í˜„ìž¬ ë‚ ì§œ ì‹œê°„ ë¬¸ìžì—´ ë°˜í™˜
     private String getCurrentDateTimeAsString() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
         return sdf.format(new Date());
     }
 
-    // 현재 날짜 "yyyyMMdd" 형식으로 반환
+    // í˜„ìž¬ ë‚ ì§œ "yyyyMMdd" í˜•ì‹ìœ¼ë¡œ ë°˜í™˜
     private String getCurrentDate() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
         return sdf.format(new Date());
     }
 
-    // Callback 인터페이스들
+    // Callback ì¸í„°íŽ˜ì´ìŠ¤ë“¤
     public interface MedicationListCallback {
         void onMedicationListReceived(List<MedicineData> medications);
         void onMedicationListFailed(Exception e);

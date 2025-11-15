@@ -139,11 +139,48 @@ public class FamilyLogin2 extends Fragment implements AuthHelper.GoogleSignInCal
     @Override
     public void onAuthSuccess(FirebaseUser user) {
         btnLogin.setEnabled(true);
-        saveDeviceToken();
-        Toast.makeText(getActivity(), "로그인 성공!", Toast.LENGTH_SHORT).show();
-        if (listener != null) {
-            listener.onLoginSuccess(user.getUid());
-        }
+
+        // username이 설정되었는지 확인
+        FirestoreHelper firestoreHelper = new FirestoreHelper();
+        firestoreHelper.getUserDocumentByUid(user.getUid(), new FirestoreHelper.UserDataCallback() {
+            @Override
+            public void onUserDataReceived(Map<String, Object> data) {
+                String username = (String) data.get("username");
+
+                if (username == null || username.isEmpty()) {
+                    // username이 없으면 SetUsernameFragment로 이동
+                    Toast.makeText(getActivity(), "사용자 이름을 설정해주세요", Toast.LENGTH_SHORT).show();
+                    SetUsernameFragment fragment = SetUsernameFragment.newInstance(user.getEmail(), user.getUid());
+                    getParentFragmentManager().beginTransaction()
+                            .replace(R.id.test_fragment_container, fragment)
+                            .addToBackStack(null)
+                            .commit();
+                } else {
+                    // username이 있으면 정상 로그인 진행
+                    saveDeviceToken();
+                    Toast.makeText(getActivity(), "로그인 성공!", Toast.LENGTH_SHORT).show();
+                    if (listener != null) {
+                        listener.onLoginSuccess(user.getUid());
+                    }
+                }
+            }
+
+            @Override
+            public void onUserDataNotFound() {
+                // 사용자 데이터가 없으면 SetUsernameFragment로 이동
+                Toast.makeText(getActivity(), "사용자 이름을 설정해주세요", Toast.LENGTH_SHORT).show();
+                SetUsernameFragment fragment = SetUsernameFragment.newInstance(user.getEmail(), user.getUid());
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.test_fragment_container, fragment)
+                        .addToBackStack(null)
+                        .commit();
+            }
+
+            @Override
+            public void onUserDataFailed(Exception e) {
+                Toast.makeText(getActivity(), "사용자 정보 확인 실패: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -239,4 +276,3 @@ public class FamilyLogin2 extends Fragment implements AuthHelper.GoogleSignInCal
     }
 
 }
-
