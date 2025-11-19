@@ -880,6 +880,36 @@ public class FirestoreHelper {
                 });
     }
 
+    public void updateDisplayName(
+            String username,
+            String newDisplayName,
+            StatusCallback callback
+    ) {
+        if (username == null || username.isEmpty()) {
+            callback.onStatusUpdateFailed(
+                    new IllegalArgumentException("Username must not be null or empty")
+            );
+            return;
+        }
+
+        DocumentReference userRef = db.collection("FamilyMember")
+                .document(username);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("displayName", newDisplayName);
+
+        userRef.update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FirestoreHelper", "displayName updated: " + newDisplayName);
+                    callback.onStatusUpdated();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FirestoreHelper", "Failed to update displayName", e);
+                    callback.onStatusUpdateFailed(e);
+                });
+    }
+
+
     // 현재 날짜 "yyyyMMdd_HHmmss"
     private String getCurrentDateTimeAsString() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
