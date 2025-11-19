@@ -6,7 +6,6 @@ import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
-import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,28 +29,17 @@ import java.util.Map;
  */
 public class FamilyLogin extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
 
-    // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
     private FirebaseAuth mAuth;
+
     public FamilyLogin() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment FamilyLogin.
-     */
-    // TODO: Rename and change types and number of parameters
     public static FamilyLogin newInstance(String param1, String param2) {
         FamilyLogin fragment = new FamilyLogin();
         Bundle args = new Bundle();
@@ -98,15 +86,19 @@ public class FamilyLogin extends Fragment {
 
         return view;
     }
+
     private void loginUser(String email, String password) {
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(getActivity(), task -> {
                     if (task.isSuccessful()) {
                         Toast.makeText(getActivity(), "로그인 성공", Toast.LENGTH_SHORT).show();
                         saveDeviceToken(); // 로그인 후 deviceToken 저장
-                        Intent intent = new Intent(getActivity(), Nav_main.class);
+
+                        // 여기서 Nav_main → MainActivity 로 변경
+                        Intent intent = new Intent(getActivity(), MainActivity.class);
                         startActivity(intent);
-                        getActivity().finish();
+                        requireActivity().finish();
+
                     } else {
                         Toast.makeText(getActivity(), "로그인 실패: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
@@ -118,15 +110,13 @@ public class FamilyLogin extends Fragment {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
-        // 현재 로그인한 사용자의 UID 가져오기
         String userId = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : null;
-        Log.d("FirestoreuserId", userId);
+        Log.d("FirestoreuserId", String.valueOf(userId));
         if (userId == null) {
             Log.w("Firestore", "User is not logged in.");
             return;
         }
 
-        // FCM 토큰 가져오기
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
                     if (!task.isSuccessful()) {
@@ -134,14 +124,11 @@ public class FamilyLogin extends Fragment {
                         return;
                     }
 
-                    // FCM 토큰
                     String deviceToken = task.getResult();
 
-                    // Firestore에 저장
                     Map<String, Object> data = new HashMap<>();
                     data.put("deviceToken", deviceToken);
 
-                    // 문서가 없으면 생성, 있으면 업데이트
                     db.collection("FamilyMember").document("users")
                             .collection("users").document(userId)
                             .set(data, SetOptions.merge())
@@ -154,58 +141,13 @@ public class FamilyLogin extends Fragment {
                             });
                 });
     }
-//private void saveDeviceToken() {
-//    Log.d("FCM saving", "SavedDeviceToken called");
-//    FirebaseFirestore db = FirebaseFirestore.getInstance();
-//    FirebaseAuth mAuth = FirebaseAuth.getInstance();
-//
-//    // 현재 로그인한 사용자의 UID 가져오기
-//    String userId = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : null;
-//    if (userId == null) {
-//        Log.w("Firestore", "User is not logged in.");
-//        return;
-//    }
-//
-//    // 디바이스 ID 가져오기 (안드로이드 디바이스 고유 ID)
-//    String deviceId = Settings.Secure.getString(getContext().getContentResolver(), Settings.Secure.ANDROID_ID);
-//
-//    // FCM 토큰 가져오기
-//    FirebaseMessaging.getInstance().getToken()
-//            .addOnCompleteListener(task -> {
-//                if (!task.isSuccessful()) {
-//                    Log.w("FCM", "Fetching FCM registration token failed", task.getException());
-//                    return;
-//                }
-//
-//                // FCM 토큰
-//                String deviceToken = task.getResult();
-//
-//                // Firestore에 저장
-//                Map<String, Object> data = new HashMap<>();
-//                data.put(deviceId, deviceToken); // 디바이스 ID를 키로 사용
-//
-//                // 문서가 없으면 생성, 있으면 업데이트
-//                db.collection("FamilyMember").document("users")
-//                        .collection("users").document(userId)
-//                        .collection("deviceTokens").document(deviceId)
-//                        .set(data, SetOptions.merge())
-//                        .addOnSuccessListener(aVoid -> {
-//                            Log.d("Firestore", "FCM Token saved successfully: " + deviceToken);
-//                        })
-//                        .addOnFailureListener(e -> {
-//                            Log.w("Firestore", "Error saving token", e);
-//                        });
-//            });
-//}
-
-
 
     private void showSignUpFragment() {
         FamilySignup signUpFragment = new FamilySignup();
-        FragmentTransaction transaction = getActivity().getSupportFragmentManager().beginTransaction();
+        FragmentTransaction transaction = requireActivity().getSupportFragmentManager().beginTransaction();
 
         transaction.replace(android.R.id.content, signUpFragment)
-                            .addToBackStack(null)
-                            .commit();
+                .addToBackStack(null)
+                .commit();
     }
 }

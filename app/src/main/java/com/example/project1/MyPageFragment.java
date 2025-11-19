@@ -26,8 +26,8 @@ public class MyPageFragment extends Fragment {
     private static final String ARG_USERNAME = "username";
     private static final String ARG_EMAIL = "email";
 
-    private String username;   // 문서 ID (로그인 시 받은 username)
-    private String email;      // 로그인 이메일
+    private String username;
+    private String email;
 
     private TextView textUsername;
     private TextView textEmail;
@@ -60,6 +60,14 @@ public class MyPageFragment extends Fragment {
         }
     }
 
+    // 전역 로딩 헬퍼
+    private void showGlobalLoading(boolean show) {
+        if (!isAdded()) return;
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(show);
+        }
+    }
+
     @Override
     public View onCreateView(
             @NonNull LayoutInflater inflater,
@@ -75,20 +83,15 @@ public class MyPageFragment extends Fragment {
         switchDarkMode = view.findViewById(R.id.switch_dark_mode);
         buttonLogout = view.findViewById(R.id.button_logout);
 
-        // 초기 표시
         textUsername.setText(username != null ? username : "-");
         textEmail.setText(email != null ? email : "-");
 
-        // Firestore에서 displayName / photoUrl 등을 가져와서 반영 (있으면)
         loadUserInfoFromFirestore();
 
-        // 닉네임 수정 아이콘 클릭
         imageEditUsername.setOnClickListener(v -> showEditNicknameDialog());
 
-        // 다크 모드 토글 초기 상태 설정 + 리스너
         initDarkModeToggle();
 
-        // 로그아웃 버튼
         buttonLogout.setOnClickListener(v -> {
             AuthHelper authHelper = new AuthHelper(requireContext());
             authHelper.logout(requireContext());
@@ -99,7 +102,6 @@ public class MyPageFragment extends Fragment {
             requireActivity().finish();
         });
 
-        // 프로필 이미지 클릭 시 (나중에 사진 업로드 붙이고 싶으면 여기서 처리)
         imageProfile.setOnClickListener(v -> {
             Toast.makeText(requireContext(), "프로필 사진 변경 기능은 추후 추가 가능합니다.", Toast.LENGTH_SHORT).show();
         });
@@ -110,10 +112,13 @@ public class MyPageFragment extends Fragment {
     private void loadUserInfoFromFirestore() {
         if (username == null || username.isEmpty()) return;
 
+        showGlobalLoading(true);
+
         firestoreHelper.getUserDataByUsername(username, new FirestoreHelper.UserDataCallback() {
             @Override
             public void onUserDataReceived(java.util.Map<String, Object> data) {
-                // displayName이 있으면 그걸 닉네임으로 보여주기
+                showGlobalLoading(false);
+
                 Object displayNameObj = data.get("displayName");
                 if (displayNameObj != null) {
                     String displayName = displayNameObj.toString();
@@ -121,17 +126,16 @@ public class MyPageFragment extends Fragment {
                         textUsername.setText(displayName);
                     }
                 }
-                // photoUrl이 있으면, Glide 같은 걸로 로딩 가능 (지금은 생략)
             }
 
             @Override
             public void onUserDataNotFound() {
-                // 무시
+                showGlobalLoading(false);
             }
 
             @Override
             public void onUserDataFailed(Exception e) {
-                // 무시 또는 로그
+                showGlobalLoading(false);
             }
         });
     }
@@ -163,16 +167,19 @@ public class MyPageFragment extends Fragment {
     }
 
     private void updateNickname(String newName) {
-        // 여기서는 username(문서 ID)은 바꾸지 않고, displayName 필드만 수정
+        showGlobalLoading(true);
+
         firestoreHelper.updateDisplayName(username, newName, new FirestoreHelper.StatusCallback() {
             @Override
             public void onStatusUpdated() {
+                showGlobalLoading(false);
                 textUsername.setText(newName);
                 Toast.makeText(requireContext(), "닉네임이 변경되었습니다.", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onStatusUpdateFailed(Exception e) {
+                showGlobalLoading(false);
                 Toast.makeText(requireContext(), "닉네임 변경에 실패했습니다.", Toast.LENGTH_SHORT).show();
             }
         });

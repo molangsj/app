@@ -1,57 +1,37 @@
 package com.example.project1;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentResultListener;
 import androidx.fragment.app.FragmentTransaction;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.project1.databinding.ActivityFamilyDrugInfoBinding;
 import com.example.project1.databinding.FamilyMainSubBinding;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.RemoteMessage;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import retrofit2.Call;
@@ -61,18 +41,32 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Body;
 import retrofit2.http.POST;
+import android.content.Context;
+import android.content.SharedPreferences;
+
 
 public class Family_main_sub extends Fragment {
+
     private FamilyMainSubBinding binding;
     private RecyclerView recyclerView;
     private FamilyAdapter adapter;
+    private static final String PREF_NAME = "family_prefs";
+    private static final String KEY_DISPLAYED = "displayed_members";
+
+
+    // Firestore에서 읽어온 전체 유저 목록 (닉네임 검색의 대상)
     private List<FamilyMember> familyMembers;
+    // 실제 화면에 보여지는 가족 멤버 목록 (닉네임으로 추가된 멤버들만)
     private List<FamilyMember> displayedMembers;
+    // 삭제된 멤버 ID 추적
     private Set<String> removedMemberIds;
+
     private FamilyViewModel familyViewModel;
     private static FirebaseFirestore db;
+
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
+
     private NotificationService notificationService;
     private String memberId3;
     private String uid;
@@ -101,120 +95,212 @@ public class Family_main_sub extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         binding = FamilyMainSubBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view,
+                              @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         db = FirebaseFirestore.getInstance();
         notificationService = RetrofitClient.getInstance().create(NotificationService.class);
         familyViewModel = new ViewModelProvider(requireActivity()).get(FamilyViewModel.class);
 
-        // RecyclerView 초기화
+        // 여기만 XML에 맞게 수정
         recyclerView = view.findViewById(R.id.family_content);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        // 데이터 리스트 초기화
         familyMembers = new ArrayList<>();
         displayedMembers = new ArrayList<>();
-        removedMemberIds = new HashSet<>(); // 삭제된 멤버 ID를 추적
+        removedMemberIds = new HashSet<>();
 
-        // 어댑터 설정
-        adapter = new FamilyAdapter(displayedMembers, position -> handleExtraInfoClick(position), this::familydruginfo);
+        adapter = new FamilyAdapter(
+                displayedMembers,
+                position -> handleExtraInfoClick(position),
+                this::familydruginfo
+        );
         recyclerView.setAdapter(adapter);
-
 
         adapter.setOnItemLongClickListener(position -> {
             new AlertDialog.Builder(requireContext())
                     .setTitle("삭제 확인")
                     .setMessage("정말로 이 항목을 삭제하시겠습니까?")
-                    .setPositiveButton("삭제", (dialog, which) -> {
-                        // 삭제 확인 시 removeMember 호출
-                        removeMember(position);
-                    })
-                    .setNegativeButton("취소", (dialog, which) -> {
-                        // 삭제 취소 시 아무 작업도 하지 않음
-                        dialog.dismiss();
-                    })
+                    .setPositiveButton("삭제", (dialog, which) -> removeMember(position))
+                    .setNegativeButton("취소", (dialog, which) -> dialog.dismiss())
                     .show();
-//            removeMember(position);
         });
 
         loadFamilyMembersFromFirestore();
-        familyViewModel.getFamilyMembers().observe(getViewLifecycleOwner(), familyMembers -> {
-            adapter.updateFamilyMembers(displayedMembers);
-        });
 
-        // add_mem 버튼 클릭 시 아이템 추가
-        view.findViewById(R.id.add_mem).setOnClickListener(v -> {
-            addMemberFromFirestore();
-        });
+        familyViewModel.getFamilyMembers().observe(
+                getViewLifecycleOwner(),
+                members -> adapter.updateFamilyMembers(displayedMembers)
+        );
+
+        view.findViewById(R.id.add_mem).setOnClickListener(v -> showAddMemberDialog());
+
         Fragment currentFragment = getParentFragmentManager().findFragmentById(R.id.fragment_container);
 
-        view.findViewById(R.id.family_statistic).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(getActivity(), Family_statistic.class);
-                getParentFragmentManager().beginTransaction()
-                        .hide(currentFragment)
-                        .add(R.id.fragment_container, Family_statistic.newInstance("param1", "param2"))
-                        .addToBackStack(null)
-                        .commit();
-            }
+        view.findViewById(R.id.family_statistic).setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), Family_statistic.class);
+            getParentFragmentManager().beginTransaction()
+                    .hide(currentFragment)
+                    .add(R.id.fragment_container, Family_statistic.newInstance("param1", "param2"))
+                    .addToBackStack(null)
+                    .commit();
         });
     }
 
+    // 현재 displayedMembers 를 SharedPreferences 에 저장
+    private void saveDisplayedMembersToPrefs() {
+        if (getContext() == null) return;
+
+        SharedPreferences prefs = requireContext()
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+
+        // memberId 들만 Set<String> 으로 저장
+        Set<String> idSet = new HashSet<>();
+        for (FamilyMember m : displayedMembers) {
+            idSet.add(m.getDocId());
+        }
+
+        prefs.edit().putStringSet(KEY_DISPLAYED, idSet).apply();
+    }
+
+    // SharedPreferences 에 저장된 idSet 을 읽어와 displayedMembers 로 복원
+    private void restoreDisplayedMembersFromPrefs() {
+        if (getContext() == null) return;
+
+        SharedPreferences prefs = requireContext()
+                .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+
+        Set<String> idSet = prefs.getStringSet(KEY_DISPLAYED, null);
+        if (idSet == null || idSet.isEmpty()) {
+            return;
+        }
+
+        displayedMembers.clear();
+
+        // familyMembers(전체 유저 목록) 중에서 idSet 에 있는 것만 골라서 추가
+        for (FamilyMember member : familyMembers) {
+            if (idSet.contains(member.getDocId())) {
+                displayedMembers.add(member);
+            }
+        }
+        adapter.notifyDataSetChanged();
+    }
+
+
+
+    // ---------------------------
+    // 닉네임 입력 다이얼로그
+    // ---------------------------
+    private void showAddMemberDialog() {
+        if (getContext() == null) return;
+
+        final EditText input = new EditText(getContext());
+        input.setHint("닉네임을 입력하세요");
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("가족 멤버 추가")
+                .setView(input)
+                .setPositiveButton("검색", (dialog, which) -> {
+                    String nickname = input.getText().toString().trim();
+                    if (nickname.isEmpty()) {
+                        Toast.makeText(getContext(), "닉네임을 입력하세요.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    searchAndAddMemberByNickname(nickname);
+                })
+                .setNegativeButton("취소", null)
+                .show();
+    }
+
+    // 이미 화면에 추가된 멤버인지 확인
+    private boolean isMemberAlreadyDisplayed(String memberId) {
+        for (FamilyMember m : displayedMembers) {
+            if (memberId.equals(m.getDocId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 닉네임으로 familyMembers에서 검색해서 displayedMembers에 추가
+    private void searchAndAddMemberByNickname(String nickname) {
+        if (familyMembers == null || familyMembers.isEmpty()) {
+            Toast.makeText(getContext(), "가족 멤버 목록을 불러오지 못했습니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 이미 추가된 멤버인지 검사
+        if (isMemberAlreadyDisplayed(nickname)) {
+            Toast.makeText(getContext(), "이미 추가된 멤버입니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        FamilyMember target = null;
+        for (FamilyMember member : familyMembers) {
+            // 닉네임을 문서 ID(docId)로 사용하고 있으므로 이렇게 비교
+            if (nickname.equals(member.getDocId())) {
+                target = member;
+                break;
+            }
+        }
+
+        if (target == null) {
+            Toast.makeText(getContext(), "해당 닉네임의 사용자를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // 제거 목록에 들어있었다면 제거
+        if (removedMemberIds != null) {
+            removedMemberIds.remove(target.getDocId());
+        }
+
+        displayedMembers.add(target);
+        adapter.notifyItemInserted(displayedMembers.size() - 1);
+        saveDisplayedMembersToPrefs();
+    }
+
+    // Firestore에서 전체 FamilyMember 문서 로딩 (닉네임 검색 대상)
     private void loadFamilyMembersFromFirestore() {
+        // 현재 Activity가 MainActivity일 때만 로딩 오버레이 사용
+        final MainActivity activity =
+                (getActivity() instanceof MainActivity) ? (MainActivity) getActivity() : null;
+
+        if (activity != null) {
+            activity.showLoading(true);
+        }
+
         db.collection("FamilyMember").get()
                 .addOnCompleteListener(task -> {
+                    // 성공/실패 상관없이 onComplete에서 로딩 반드시 끔
+                    if (activity != null) {
+                        activity.showLoading(false);
+                    }
+
                     if (task.isSuccessful()) {
                         familyMembers.clear();
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            String docId = document.getId(); // Firestore 문서 ID
+                            String docId = document.getId();
                             familyMembers.add(new FamilyMember(docId));
                         }
-                        adapter.notifyDataSetChanged();
+
+                        // 저장해 둔 가족 목록 복원
+                        restoreDisplayedMembersFromPrefs();
                     } else {
                         Log.w("Firestore", "Error getting data", task.getException());
                     }
                 });
     }
 
-    private void addMemberFromFirestore() {
-        for (FamilyMember member : familyMembers) {
-            String memberId = member.getDocId();
 
-            if (removedMemberIds.contains(memberId) || !isMemberDisplayedOrRemoved(memberId)) {
-//                removedMemberIds.remove(memberId);
-                displayedMembers.add(member);
-                removedMemberIds.remove(memberId);
-                adapter.notifyItemInserted(displayedMembers.size() - 1);
-
-                View newView = LayoutInflater.from(getContext()).inflate(R.layout.family_mem_add, null);
-                ImageView familySendImageView = newView.findViewById(R.id.family_send);
-                familySendImageView.setOnClickListener(v->{
-                    Toast.makeText(getContext(), "Family Send clicked", Toast.LENGTH_SHORT).show();
-                });
-                break;
-            }
-        }
-
-        if (displayedMembers.size() == familyMembers.size()) {
-            Toast.makeText(getContext(), "모든 멤버가 추가되었습니다.", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private boolean isMemberDisplayedOrRemoved(String memberId) {
-        for (FamilyMember displayedMember : displayedMembers) {
-            if (displayedMember.getDocId().equals(memberId)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     private void sendNotification(String receiverId, String messageText) {
         NotificationRequest request = new NotificationRequest(receiverId, messageText);
@@ -238,23 +324,23 @@ public class Family_main_sub extends Fragment {
         });
     }
 
-
     // Extra Info 버튼 클릭 시 동작
     private void handleExtraInfoClick(int position) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         FamilyMember selectedMember = displayedMembers.get(position);
         String memberId = selectedMember.getDocId();
-        memberId3=memberId;
+        memberId3 = memberId;
+
         Family_drug_info familyDrugInfoFragment = Family_drug_info.newInstance(memberId);
-        Bundle result=new Bundle();
+        Bundle result = new Bundle();
         result.putString("memberId", memberId);
         getParentFragmentManager().setFragmentResult("request", result);
-        Log.d("Firestoreblabla", "meesageId Send");
+        Log.d("Firestoreblabla", "messageId Send");
 
+        // uid 조회
         db.collection("FamilyMember").document(memberId3)
                 .get().addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        // "uid" 필드 값 가져오기
                         uid = documentSnapshot.getString("uid");
                         if (uid != null) {
                             Log.d("Firestore", "UID 값: " + uid);
@@ -264,37 +350,7 @@ public class Family_main_sub extends Fragment {
                     } else {
                         Log.d("Firestore", "문서가 존재하지 않습니다.");
                     }
-                }).addOnFailureListener(e -> {
-                    Log.w("Firestore", "데이터 가져오기 실패", e);
-                });
-
-//        String uid2=uid;
-
-//        String bUserId = "VL3AQ8338XY7AQA7AzzkQD38Iyz2"; // b 사용자의 UID
-//        String bUserId = memberId;
-
-//        String messageText = "아직 먹지 않은 약이 있습니다!";
-//        db.collection("FamilyMember").document("users")
-//                .collection("users").document(uid2)
-//                .get()
-//                .addOnSuccessListener(documentSnapshot -> {
-//                    if (documentSnapshot.exists()) {
-//                        // deviceToken 필드 가져오기
-//                        String deviceToken = documentSnapshot.getString("deviceToken");
-//                        if (deviceToken != null) {
-//                            // FCM을 사용해 알림 전송
-//                            Log.d("Firestore", deviceToken);
-////                            sendNotification(deviceToken);
-//                        } else {
-//                            Log.w("Firestore", "Device token is null for user: " + uid2);
-//                        }
-//                    } else {
-//                        Log.w("Firestore", "Document does not exist for user: " + uid2);
-//                    }
-//                })
-//                .addOnFailureListener(e -> {
-//                    Log.w("Firestore", "Error fetching device token", e);
-//                });
+                }).addOnFailureListener(e -> Log.w("Firestore", "데이터 가져오기 실패", e));
 
         db.collection("FamilyMember").document(memberId3)
                 .get().addOnSuccessListener(documentSnapshot -> {
@@ -303,7 +359,6 @@ public class Family_main_sub extends Fragment {
                         if (uid != null) {
                             Log.d("Firestore", "UID 값: " + uid);
 
-                            // Firestore 결과가 도착한 후 uid2에 값을 할당하고 사용
                             uid2 = uid;
                             String messageText = "아직 먹지 않은 약이 있습니다!";
 
@@ -323,9 +378,7 @@ public class Family_main_sub extends Fragment {
                                             Log.w("Firestore", "Document does not exist for user: " + uid2);
                                         }
                                     })
-                                    .addOnFailureListener(e -> {
-                                        Log.w("Firestore", "Error fetching device token", e);
-                                    });
+                                    .addOnFailureListener(e -> Log.w("Firestore", "Error fetching device token", e));
 
                         } else {
                             Log.d("Firestore", "UID 필드가 존재하지 않습니다.");
@@ -333,32 +386,31 @@ public class Family_main_sub extends Fragment {
                     } else {
                         Log.d("Firestore", "문서가 존재하지 않습니다.");
                     }
-                }).addOnFailureListener(e -> {
-                    Log.w("Firestore", "데이터 가져오기 실패", e);
-                });
+                }).addOnFailureListener(e -> Log.w("Firestore", "데이터 가져오기 실패", e));
 
+        // 현재 RecyclerView에서 해당 position의 itemView 가져오기
         RecyclerView.ViewHolder viewHolder = recyclerView.findViewHolderForAdapterPosition(position);
         if (viewHolder == null) {
             return;
         }
-//        View view = recyclerView.findViewHolderForAdapterPosition(position).itemView;
-        String messageText = "아직 먹지 않은 약이 있습니다!";
-        View view = viewHolder.itemView;
+        View itemView = viewHolder.itemView;
 
-        String bubble="abc";
-        LinearLayout drugInfo = view.findViewById(R.id.drug_info);
-        ImageView familySendImageView = view.findViewById(R.id.family_send);
+        String messageText = "아직 먹지 않은 약이 있습니다!";
+        String bubble = "abc";
+
+        LinearLayout drugInfo = itemView.findViewById(R.id.drug_info);
+        ImageView familySendImageView = itemView.findViewById(R.id.family_send);
         Animation slideDown = AnimationUtils.loadAnimation(getContext(), R.anim.slide_down);
         Animation slideUp = AnimationUtils.loadAnimation(getContext(), R.anim.slide_up);
 
-        familySendImageView.setOnClickListener(v->{
+        familySendImageView.setOnClickListener(v -> {
             sendNotification(uid2, messageText);
             Toast.makeText(getContext(), "Family Send clicked", Toast.LENGTH_SHORT).show();
         });
 
         if (drugInfo.getVisibility() == View.GONE) {
-            fetchDrugInfo(view);
-            checkPillStatusAndUpdateUI(view, bubble);
+            fetchDrugInfo(itemView);
+            checkPillStatusAndUpdateUI(itemView, bubble);
             drugInfo.startAnimation(slideDown);
             drugInfo.setVisibility(View.VISIBLE);
         } else {
@@ -370,7 +422,6 @@ public class Family_main_sub extends Fragment {
     private void fetchDrugInfo(View fragmentView) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-        // Step 1: FamilyMember/Member1 문서에서 날짜 필드들을 가져오기
         db.collection("FamilyMember")
                 .document(memberId3)
                 .get()
@@ -379,33 +430,31 @@ public class Family_main_sub extends Fragment {
                         List<Integer> dateCollectionNames = new ArrayList<>();
                         for (String key : documentSnapshot.getData().keySet()) {
                             try {
-                                // 날짜 문자열을 정수로 변환하여 리스트에 추가
                                 dateCollectionNames.add(Integer.parseInt(key));
                             } catch (NumberFormatException e) {
-                                // 날짜가 아닌 필드는 무시
                                 Log.d("Firestore", "Non-date field ignored: " + key);
                             }
                         }
 
                         if (!dateCollectionNames.isEmpty()) {
-                            // 날짜 리스트 정렬 (내림차순: 최신 날짜가 첫 번째)
                             Collections.sort(dateCollectionNames, Collections.reverseOrder());
-
-                            // 최신 날짜 컬렉션을 선택
                             int latestDate = dateCollectionNames.get(0);
                             Log.d("Firestore", "Recent date collection: " + latestDate);
 
-                            // Step 2: 최신 날짜 컬렉션에서 Drug_Info 데이터 가져오기
+                            // 최신 날짜로 약 체크 상태 확인
                             checkPillStatusAndUpdateUI(fragmentView, String.valueOf(latestDate));
                         } else {
                             Log.d("Firestore", "No date collections found.");
                         }
                     } else {
-                        Log.d("Firestore", "Member1 document doesn't exist.");
+                        Log.d("Firestore", "Member document doesn't exist.");
                     }
                 })
-                .addOnFailureListener(e -> Log.e("Firestore", "Failed to fetch Member1 document", e));
+                .addOnFailureListener(e -> {
+                    Log.e("Firestore", "Failed to fetch Member document", e);
+                });
     }
+
 
     private void checkPillStatusAndUpdateUI(View itemView, String latestDate) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -415,29 +464,24 @@ public class Family_main_sub extends Fragment {
                 .collection(latestDate)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    boolean allChecked = true; // 모든 pillchecked가 1인지 확인
+                    boolean allChecked = true;
 
-                    // 각 문서를 순회하면서 pillchecked 값 확인
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         Long pillChecked = doc.getLong("pillIsChecked");
-
-                        // pillChecked가 null이거나 1이 아니면 allChecked를 false로 설정
                         if (pillChecked == null || !pillChecked.equals(1L)) {
                             allChecked = false;
                             break;
                         }
                     }
-                    // 이미지 업데이트
+
                     ImageView memberPillCheck = itemView.findViewById(R.id.member_pillcheck);
-                    if (allChecked) {
-                        memberPillCheck.setImageResource(R.drawable.pill_checked);
-                    } else {
-                        memberPillCheck.setImageResource(R.drawable.pill_check);
-                    }
+
+                    memberPillCheck.setImageResource(
+                            allChecked ? R.drawable.pill_checked : R.drawable.pill_check
+                    );
                 })
                 .addOnFailureListener(e -> Log.e("Firestore Error", "Failed to fetch Drug_Info data", e));
     }
-
 
     // 멤버 레이아웃 삭제 처리
     private void removeMember(int position) {
@@ -445,6 +489,7 @@ public class Family_main_sub extends Fragment {
         removedMemberIds.add(removedMember.getDocId());
         displayedMembers.remove(position);
         adapter.notifyItemRemoved(position);
+        saveDisplayedMembersToPrefs();
     }
 
     private void familydruginfo() {
@@ -457,12 +502,13 @@ public class Family_main_sub extends Fragment {
         }
 
         transaction.replace(R.id.recycler_frame, new Family_drug_info());
-        transaction.addToBackStack(null); // 뒤로 가기 지원
+        transaction.addToBackStack(null);
         transaction.commit();
 
-        RecyclerView recyclerView = requireView().findViewById(R.id.family_content);
         recyclerView.setVisibility(View.GONE);
     }
+
+    // ---------------- Notification ----------------
 
     public interface NotificationService {
         @POST("/send-notification")
@@ -473,13 +519,11 @@ public class Family_main_sub extends Fragment {
         private String receiverId;
         private String messageText;
 
-        // 생성자
         public NotificationRequest(String receiverId, String messageText) {
             this.receiverId = receiverId;
             this.messageText = messageText;
         }
 
-        // Getter/Setter
         public String getReceiverId() {
             return receiverId;
         }
@@ -504,7 +548,7 @@ class RetrofitClient {
     public static Retrofit getInstance() {
         if (retrofit == null) {
             retrofit = new Retrofit.Builder()
-                    .baseUrl("http://192.168.11.11:5000") // 서버 주소
+                    .baseUrl("http://192.168.11.11:5000")
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }

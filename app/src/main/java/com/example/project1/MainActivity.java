@@ -36,6 +36,8 @@ import com.google.firebase.auth.FirebaseUser;
 
 import java.io.File;
 import java.util.Calendar;
+import android.view.View;
+
 
 public class MainActivity extends AppCompatActivity implements
         FamilyLogin2.OnLoginSuccessListener,
@@ -52,6 +54,9 @@ public class MainActivity extends AppCompatActivity implements
     private static final int REQUEST_CODE_SCHEDULE_EXACT_ALARM = 2;
     private String familyMemberId;
     private FirebaseUser curUser;
+
+    private View globalLoadingOverlay;
+    private int loadingCount = 0;
 
     private ActivityResultLauncher<Intent> exactAlarmPermissionLauncher;
 
@@ -112,14 +117,22 @@ public class MainActivity extends AppCompatActivity implements
         userEmail = email;
 
         setContentView(R.layout.activity_nav_main);
+
+        // 전역 로딩 오버레이 뷰 연결
+        globalLoadingOverlay = findViewById(R.id.global_loading_overlay);
+
         createNotificationChannel();
         requestNotificationPermission();
         handleRecentsDirectory();
 
         // Firestore에서 사용자 존재 여부 확인
+        showLoading(true);
+
         firestoreHelper.checkUserExists(uid, new FirestoreHelper.CheckUserCallback() {
             @Override
             public void onUserExists(String fetchedUsername) {
+                showLoading(false);
+
                 username = fetchedUsername;
                 setupBottomNavigation();
                 // 초기 프래그먼트 설정
@@ -131,16 +144,21 @@ public class MainActivity extends AppCompatActivity implements
 
             @Override
             public void onUserDoesNotExist() {
+                showLoading(false);
+
                 Toast.makeText(MainActivity.this, "사용자 이름을 설정해주세요.", Toast.LENGTH_SHORT).show();
                 navigateToSetUsernameFragment(email, uid);
             }
 
             @Override
             public void onError(Exception e) {
+                showLoading(false);
+
                 Toast.makeText(MainActivity.this, "사용자 확인 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show();
                 Log.e("MainActivity", "Error checking user existence", e);
             }
         });
+
     }
 
     /**
@@ -260,6 +278,21 @@ public class MainActivity extends AppCompatActivity implements
                 .commit();
     }
 
+    public void showLoading(boolean show) {
+        if (globalLoadingOverlay == null) return;
+
+        if (show) {
+            loadingCount++;
+        } else {
+            loadingCount = Math.max(loadingCount - 1, 0);
+        }
+
+        globalLoadingOverlay.setVisibility(
+                loadingCount > 0 ? View.VISIBLE : View.GONE
+        );
+    }
+
+
     private void requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -328,10 +361,13 @@ public class MainActivity extends AppCompatActivity implements
             return;
         }
 
+        showLoading(true);
+
         // Firestore에서 사용자 존재 여부 확인
         firestoreHelper.checkUserExists(uid, new FirestoreHelper.CheckUserCallback() {
             @Override
             public void onUserExists(String fetchedUsername) {
+                showLoading(false);
                 username = fetchedUsername;
                 setupBottomNavigation();
                 // 초기 프래그먼트 설정
@@ -343,12 +379,14 @@ public class MainActivity extends AppCompatActivity implements
 
             @Override
             public void onUserDoesNotExist() {
+                showLoading(false);
                 Toast.makeText(MainActivity.this, "사용자 이름을 설정해주세요.", Toast.LENGTH_SHORT).show();
                 navigateToSetUsernameFragment(email, uid);
             }
 
             @Override
             public void onError(Exception e) {
+                showLoading(false);
                 Toast.makeText(MainActivity.this, "사용자 확인 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show();
                 Log.e("MainActivity", "Error checking user existence", e);
             }

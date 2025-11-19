@@ -156,9 +156,12 @@ public class MedicineList extends Fragment implements
             return;
         }
 
+        ((MainActivity) requireActivity()).showLoading(true);
+
         firestoreHelper.getCurrentMedications(username, new FirestoreHelper.MedicationListCallback() {
             @Override
             public void onMedicationListReceived(List<MedicineData> medications) {
+                ((MainActivity) requireActivity()).showLoading(false);
                 Log.d("MedicineListFragment", "Current medications received: " + medications.size());
                 for (MedicineData medicine : medications) {
                     Log.d("MedicineListFragment", "Medicine: " + medicine.getPillName());
@@ -175,6 +178,7 @@ public class MedicineList extends Fragment implements
 
             @Override
             public void onMedicationListFailed(Exception e) {
+                ((MainActivity) requireActivity()).showLoading(false);
                 Log.e("MedicineListFragment", "Error getting current medications: ", e);
                 binding.medicineRecyclerView.setVisibility(View.GONE);
                 binding.emptyTextView.setVisibility(View.VISIBLE);

@@ -1,12 +1,9 @@
-// AddEditMedicineFragment.java
 package com.example.project1;
 
 import androidx.core.content.ContextCompat;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.annotation.SuppressLint;
 import android.os.Build;
-import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.content.Context;
 import android.os.Bundle;
@@ -21,7 +18,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
-import android.widget.TimePicker;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -96,7 +92,7 @@ public class AddEditMedicineFragment extends Fragment {
     };
 
     public AddEditMedicineFragment() {
-        // 생성자
+        // 기본 생성자
     }
 
     public static AddEditMedicineFragment newInstance(MedicineData medicine, String username) {
@@ -158,6 +154,14 @@ public class AddEditMedicineFragment extends Fragment {
         }
     }
 
+    // 전역 로딩 호출 헬퍼
+    private void showGlobalLoading(boolean show) {
+        if (!isAdded()) return;
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(show);
+        }
+    }
+
     private void setupUI() {
         initializeCategorySpinners();
         if (medicine != null) {
@@ -166,9 +170,8 @@ public class AddEditMedicineFragment extends Fragment {
             binding.addMedicineMemo.setText(medicine.getNotes());
             binding.addMedicationCaution.setText(medicine.getCaution());
 
-            // Firestore에서 불러온 iconResId 사용 (iconManager 호출 제거)
             binding.imgSelectedIcon.setImageResource(medicine.getIconResId());
-            selectedIconResId = medicine.getIconResId();  // Firestore 반영값 사용
+            selectedIconResId = medicine.getIconResId();
 
             alarmTimes = (medicine.getAlarmTimes() != null) ? medicine.getAlarmTimes() : new ArrayList<>();
             setDaysOfWeekToggle(medicine.getDaysOfWeek());
@@ -199,13 +202,11 @@ public class AddEditMedicineFragment extends Fragment {
                 addAlarmButton(time, false);
             }
 
-            // 수정 모드에서는 힌트 버튼 숨기기
             binding.btnSelectAlarm.setVisibility(View.GONE);
         } else {
             // 추가 모드
             alarmTimes = new ArrayList<>();
             setAllDaysOfWeekToggle(true);
-            // 추가 모드는 Firestore 값 없음, selectedIconResId=기본값 그대로
             binding.imgSelectedIcon.setImageResource(selectedIconResId);
         }
 
@@ -241,7 +242,6 @@ public class AddEditMedicineFragment extends Fragment {
         binding.addMedicineAdd.setOnClickListener(v -> saveMedicine());
     }
 
-
     private void openIconSelectionDialog() {
         IconSelectionDialog dialog = new IconSelectionDialog(getContext(), new IconSelectionDialog.IconSelectionListener() {
             @Override
@@ -255,7 +255,7 @@ public class AddEditMedicineFragment extends Fragment {
     }
 
     private void initializeCategorySpinners() {
-        // 처방 의약품 Spinner 설정
+        // 처방 의약품 Spinner
         ArrayAdapter<String> prescriptionAdapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_item,
@@ -272,7 +272,6 @@ public class AddEditMedicineFragment extends Fragment {
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                // 기본값 설정
                 if (prescriptionTypeValues.length > 0) {
                     pillType = prescriptionTypeValues[0];
                 }
@@ -280,7 +279,7 @@ public class AddEditMedicineFragment extends Fragment {
             }
         });
 
-        // 일반 의약품 Spinner 설정
+        // 일반 의약품 Spinner
         ArrayAdapter<String> nonPrescriptionAdapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_item,
@@ -297,7 +296,6 @@ public class AddEditMedicineFragment extends Fragment {
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                // 기본값 설정
                 if (nonPrescriptionTypeValues.length > 0) {
                     pillType = nonPrescriptionTypeValues[0];
                 }
@@ -306,7 +304,6 @@ public class AddEditMedicineFragment extends Fragment {
         });
     }
 
-    // 카테고리 목록에서 선택된 pillType 인덱스 반환
     private int getCategoryIndex(int[] types, int selectedType) {
         for (int i = 0; i < types.length; i++) {
             if (types[i] == selectedType) {
@@ -316,7 +313,7 @@ public class AddEditMedicineFragment extends Fragment {
         return -1;
     }
 
-    // 초기 힌트 버튼 클릭 시 처리
+    // 초기 힌트 버튼 클릭
     private void handleInitialAlarmButtonClick() {
         addAlarmTime(true);
     }
@@ -347,7 +344,6 @@ public class AddEditMedicineFragment extends Fragment {
         });
         dialog.show(getParentFragmentManager(), "time_picker_dialog");
     }
-
 
     private void addAlarmTime() {
         addAlarmTime(false);
@@ -392,11 +388,9 @@ public class AddEditMedicineFragment extends Fragment {
                 int index = alarmTimes.indexOf(time);
                 if (index != -1) {
                     if (medicine != null) {
-                        // 수정 모드: Firestore에서 알람 삭제
                         firestoreHelper.removePillIsChecked(username, medicine.getDateStr(), pillNameInput(), index, new FirestoreHelper.StatusCallback() {
                             @Override
                             public void onStatusUpdated() {
-                                // 알람 시간과 pillIsChecked 필드 삭제
                                 alarmTimes.remove(index);
                                 binding.timeSettingContainer.removeView(alarmLayout);
                                 Log.d("AddEditMedicineFragment", "Alarm removed: " + time);
@@ -406,7 +400,6 @@ public class AddEditMedicineFragment extends Fragment {
                                     binding.btnSelectAlarm.setVisibility(View.VISIBLE);
                                 }
 
-                                // pillIsChecked 필드 업데이트 (필요 시)
                                 updatePillIsCheckedFields();
                             }
 
@@ -417,7 +410,6 @@ public class AddEditMedicineFragment extends Fragment {
                             }
                         });
                     } else {
-                        // 추가 모드: Firestore에 저장되지 않은 알람이므로 로컬에서만 삭제
                         alarmTimes.remove(index);
                         binding.timeSettingContainer.removeView(alarmLayout);
                         Log.d("AddEditMedicineFragment", "Alarm removed locally: " + time);
@@ -433,7 +425,6 @@ public class AddEditMedicineFragment extends Fragment {
                 }
             });
 
-            // 시간 수정 기능 (수정 모드에서만 동작)
             timeButton.setOnClickListener(v -> {
                 TimePickerDialogFragment dialog = new TimePickerDialogFragment();
                 dialog.setOnTimeSelectedListener((selectedHour, selectedMinute) -> {
@@ -443,19 +434,15 @@ public class AddEditMedicineFragment extends Fragment {
                         return;
                     }
                     int currentIndex = alarmTimes.indexOf(time);
-                    if (currentIndex != -1 && currentIndex < 30) { // 최대 알람 수 정의
+                    if (currentIndex != -1 && currentIndex < 30) {
                         String oldTime = alarmTimes.get(currentIndex);
                         alarmTimes.set(currentIndex, newTime);
                         timeButton.setText(newTime);
                         Log.d("AddEditMedicineFragment", "Alarm time updated from " + oldTime + " to " + newTime);
 
-                        // 기존 알람 취소
                         cancelAlarm(username, medicine.getDateStr(), oldTime);
-
-                        // 새로운 알람 설정
                         setAlarm(username, medicine.getDateStr(), pillNameInput(), newTime);
 
-                        // pillIsChecked 필드 업데이트
                         firestoreHelper.updatePillIsCheckedAt(username, medicine.getDateStr(), pillNameInput(), currentIndex, 0, new FirestoreHelper.StatusCallback() {
                             @Override
                             public void onStatusUpdated() {
@@ -524,6 +511,9 @@ public class AddEditMedicineFragment extends Fragment {
 
         List<String> selectedDays = getSelectedDaysOfWeek();
 
+        // 로딩 시작
+        showGlobalLoading(true);
+
         if (medicine == null) {
             // 추가 모드
             firestoreHelper.addMedicine(
@@ -533,19 +523,20 @@ public class AddEditMedicineFragment extends Fragment {
                     alarmEnabled,
                     favorite,
                     alarmTimes,
-                    notesInput,  // notes
+                    notesInput,
                     selectedDays,
                     new FirestoreHelper.MedicationCallback() {
                         @Override
                         public void onMedicationAdded(MedicineData addedMedicine) {
+                            // Firestore add 성공 → 로딩 끄기
+                            showGlobalLoading(false);
+
                             firestoreHelper.addDateToFamilyMember(username, addedMedicine.getDateStr(), new FirestoreHelper.StatusCallback() {
                                 @Override
                                 public void onStatusUpdated() {
-                                    // 날짜 필드 추가 성공 후 알람 설정
                                     for (String alarmTime : alarmTimes) {
                                         setAlarm(username, addedMedicine.getDateStr(), pillNameInput, alarmTime);
                                     }
-                                    requireActivity().getSupportFragmentManager();
                                 }
 
                                 @Override
@@ -554,33 +545,39 @@ public class AddEditMedicineFragment extends Fragment {
                                     Log.e("AddEditMedicineFragment", "Failed to add date metadata: " + addedMedicine.getDateStr(), e);
                                 }
                             });
-                            // caution 업데이트
+
                             firestoreHelper.updateCaution(username, addedMedicine.getDateStr(), pillNameInput, cautionInput, new FirestoreHelper.StatusCallback() {
                                 @Override
                                 public void onStatusUpdated() {
-                                    // icon 업데이트
                                     firestoreHelper.updateMedicineIcon(username, addedMedicine.getDateStr(), pillNameInput, selectedIconResId, new FirestoreHelper.StatusCallback() {
                                         @Override
                                         public void onStatusUpdated() {
-                                            requireActivity().getSupportFragmentManager().popBackStack();
+                                            if (isAdded()) {
+                                                requireActivity().getSupportFragmentManager().popBackStack();
+                                            }
                                         }
 
                                         @Override
                                         public void onStatusUpdateFailed(Exception e) {
-                                            requireActivity().getSupportFragmentManager().popBackStack();
+                                            if (isAdded()) {
+                                                requireActivity().getSupportFragmentManager().popBackStack();
+                                            }
                                         }
                                     });
                                 }
 
                                 @Override
                                 public void onStatusUpdateFailed(Exception e) {
-                                    requireActivity().getSupportFragmentManager().popBackStack();
+                                    if (isAdded()) {
+                                        requireActivity().getSupportFragmentManager().popBackStack();
+                                    }
                                 }
                             });
                         }
 
                         @Override
                         public void onMedicationAddFailed(Exception e) {
+                            showGlobalLoading(false);
                             Toast.makeText(getContext(), "약 추가 실패", Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -603,32 +600,40 @@ public class AddEditMedicineFragment extends Fragment {
                     new FirestoreHelper.StatusCallback() {
                         @Override
                         public void onStatusUpdated() {
-                            // caution 업데이트 후 icon 업데이트
+                            showGlobalLoading(false);
+
                             firestoreHelper.updateCaution(username, dateStr, pillNameInput, cautionInput, new FirestoreHelper.StatusCallback() {
                                 @Override
                                 public void onStatusUpdated() {
                                     firestoreHelper.updateMedicineIcon(username, dateStr, pillNameInput, selectedIconResId, new FirestoreHelper.StatusCallback() {
                                         @Override
                                         public void onStatusUpdated() {
-                                            requireActivity().getSupportFragmentManager().popBackStack();
+                                            if (isAdded()) {
+                                                requireActivity().getSupportFragmentManager().popBackStack();
+                                            }
                                         }
 
                                         @Override
                                         public void onStatusUpdateFailed(Exception e) {
-                                            requireActivity().getSupportFragmentManager().popBackStack();
+                                            if (isAdded()) {
+                                                requireActivity().getSupportFragmentManager().popBackStack();
+                                            }
                                         }
                                     });
                                 }
 
                                 @Override
                                 public void onStatusUpdateFailed(Exception e) {
-                                    requireActivity().getSupportFragmentManager().popBackStack();
+                                    if (isAdded()) {
+                                        requireActivity().getSupportFragmentManager().popBackStack();
+                                    }
                                 }
                             });
                         }
 
                         @Override
                         public void onStatusUpdateFailed(Exception e) {
+                            showGlobalLoading(false);
                             Toast.makeText(getContext(), "약 수정 실패", Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -636,25 +641,18 @@ public class AddEditMedicineFragment extends Fragment {
         }
     }
 
-
     private void updatePillIsCheckedFields() {
-        // 현재 alarmTimes 리스트에 따라 pillIsCheckedX 필드를 재설정
         for (int i = 0; i < alarmTimes.size() && i < 10; i++) {
-            // 루프 변수 i의 복사본을 final로 선언
             final int index = i;
-            String alarmTime = alarmTimes.get(index);
             String fieldName = "pillIsChecked" + (index + 1);
 
-            // pillIsCheckedX 필드를 false로 초기화
             firestoreHelper.updatePillIsCheckedAt(username, medicine.getDateStr(), pillNameInput(), index, 0, new FirestoreHelper.StatusCallback() {
                 @Override
                 public void onStatusUpdated() {
                     Log.d("AddEditMedicineFragment", "pillIsChecked field updated: " + fieldName);
 
-                    // pillIsChecked 값을 계산
                     int pillIsChecked = medicine.calculatePillIsChecked();
 
-                    // 다시 업데이트 시도 (index 값을 포함하여 전달)
                     firestoreHelper.updatePillIsCheckedAt(username, medicine.getDateStr(), pillNameInput(), index, pillIsChecked, new FirestoreHelper.StatusCallback() {
                         @Override
                         public void onStatusUpdated() {
@@ -676,12 +674,11 @@ public class AddEditMedicineFragment extends Fragment {
         }
     }
 
-
     private String pillNameInput() {
         return binding.addMedicineName.getText().toString().trim();
     }
 
-    private void setAlarm(String username, String dateStr, String pillName, String alarmTime) { // username 기반
+    private void setAlarm(String username, String dateStr, String pillName, String alarmTime) {
         try {
             String[] timeParts = alarmTime.split(":");
             int hour = Integer.parseInt(timeParts[0]);
@@ -702,8 +699,6 @@ public class AddEditMedicineFragment extends Fragment {
             intent.putExtra("dateStr", dateStr);
             intent.putExtra("pillName", pillName);
             intent.putExtra("alarmTime", alarmTime);
-
-
 
             int requestCode = getUniqueRequestCode();
 
@@ -774,7 +769,6 @@ public class AddEditMedicineFragment extends Fragment {
         binding.toggleSun.setChecked(isChecked);
     }
 
-    // 처방 의약품 버튼 선택 시 UI 업데이트
     private void selectPrescriptionButton() {
         binding.addMedicineBtnPrescription.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.colorSecondary));
         binding.addMedicineBtnPrescription.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
@@ -785,7 +779,6 @@ public class AddEditMedicineFragment extends Fragment {
         binding.spinnerNonPrescriptionCategories.setVisibility(View.GONE);
     }
 
-    // 일반 의약품 버튼 선택 시 UI 업데이트
     private void selectNonPrescriptionButton() {
         binding.addMedicineBtnNonPrescription.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.colorSecondary));
         binding.addMedicineBtnNonPrescription.setTextColor(ContextCompat.getColor(requireContext(), R.color.white));
@@ -796,7 +789,6 @@ public class AddEditMedicineFragment extends Fragment {
         binding.spinnerNonPrescriptionCategories.setVisibility(View.VISIBLE);
     }
 
-    // Alarm을 취소하는 메서드 (수정 시 기존 알람 제거)
     private void cancelAlarm(String username, String dateStr, String alarmTime) {
         try {
             Intent intent = new Intent(requireContext(), AlarmReceiver.class);
@@ -805,7 +797,6 @@ public class AddEditMedicineFragment extends Fragment {
             intent.putExtra("alarmTime", alarmTime);
 
             int requestCode = (username + alarmTime).hashCode();
-
 
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     requireContext(),
