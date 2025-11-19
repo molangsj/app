@@ -1,5 +1,3 @@
-// app/src/main/java/com/example/project_yakkuk/MedicineList.java
-
 package com.example.project1;
 
 import android.app.AlertDialog;
@@ -50,7 +48,6 @@ public class MedicineList extends Fragment implements
         // Required empty public constructor
     }
 
-    // 새 인스턴스 생성 시, username을 전달
     public static MedicineList newInstance(String username) {
         MedicineList fragment = new MedicineList();
         Bundle args = new Bundle();
@@ -66,24 +63,21 @@ public class MedicineList extends Fragment implements
         binding = FragmentMedicineListBinding.inflate(inflater, container, false);
         firestoreHelper = new FirestoreHelper();
 
-        // 인자 받기
         if (getArguments() != null) {
             username = getArguments().getString("username");
             Log.d("MedicineListFragment", "Arguments received: username=" + username);
         } else {
-            // 오류 발생 시 null 방지 처리
-            username = "";  // 기본값 설정
+            username = "";
             Log.e("MedicineListFragment", "Arguments are null");
         }
 
-        // FAB 클릭 리스너 설정
         binding.addMedicineButton.setOnClickListener(v -> {
             navigateToAddMedicine();
         });
 
         setupRecyclerView();
 
-        return binding.getRoot(); // Fragment의 root view 반환
+        return binding.getRoot();
     }
 
     @Override
@@ -91,15 +85,14 @@ public class MedicineList extends Fragment implements
         super.onResume();
         if (username != null && !username.isEmpty()) {
             Log.d("MedicineListFragment", "onResume: username=" + username);
-            dateStr = getCurrentDate(); // 현재 날짜 설정
-            getMedicineListFromFirestore();  // 데이터 가져오기
+            dateStr = getCurrentDate(); // 알람 설정에 사용할 오늘 날짜
+            getMedicineListFromFirestore();  // "현재 복용 약" 목록 가져오기
         } else {
             Log.e("MedicineListFragment", "Invalid username: " + username);
             Toast.makeText(getContext(), "유효하지 않은 사용자 이름입니다.", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // RecyclerView 설정 (어댑터 초기화 및 레이아웃 설정)
     private void setupRecyclerView() {
         if (medicineList == null) {
             medicineList = new ArrayList<>();
@@ -108,13 +101,12 @@ public class MedicineList extends Fragment implements
         binding.medicineRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.medicineRecyclerView.setAdapter(adapter);
 
-        // Swipe to show edit and delete options via dialog
         ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
             @Override
             public boolean onMove(@NonNull RecyclerView recyclerView,
                                   @NonNull RecyclerView.ViewHolder viewHolder,
                                   @NonNull RecyclerView.ViewHolder target) {
-                return false; // 드래그 이동 사용 안 함
+                return false;
             }
 
             @Override
@@ -122,32 +114,26 @@ public class MedicineList extends Fragment implements
                 int position = viewHolder.getAdapterPosition();
                 MedicineData medicine = medicineList.get(position);
 
-                // 커스텀 뷰를 인플레이트
                 LayoutInflater inflater = LayoutInflater.from(getContext());
                 View dialogView = inflater.inflate(R.layout.dialog_edit_delete, null);
 
-                // 제목 설정
                 TextView title = dialogView.findViewById(R.id.dialog_title);
                 title.setText(medicine.getPillName());
 
-                // 버튼 참조
                 Button btnEdit = dialogView.findViewById(R.id.btn_edit);
                 Button btnDelete = dialogView.findViewById(R.id.btn_delete);
 
-                // 다이얼로그 빌더
                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
                 builder.setView(dialogView)
                         .setCancelable(false);
 
                 AlertDialog dialog = builder.create();
 
-                // 수정 버튼 클릭 이벤트
                 btnEdit.setOnClickListener(v -> {
                     openEditMedicine(medicine);
                     dialog.dismiss();
                 });
 
-                // 삭제 버튼 클릭 이벤트
                 btnDelete.setOnClickListener(v -> {
                     confirmDeleteMedicine(position, medicine);
                     dialog.dismiss();
@@ -158,51 +144,45 @@ public class MedicineList extends Fragment implements
 
         };
 
-// RecyclerView에 ItemTouchHelper 연결
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
         itemTouchHelper.attachToRecyclerView(binding.medicineRecyclerView);
-
     }
 
-    // Firestore에서 약 정보 가져오기
+    // 🔴 여기서부터: "오늘 날짜"가 아니라 currentMedications 컬렉션을 봄
     private void getMedicineListFromFirestore() {
         if (username == null || username.isEmpty()) {
             Log.e("MedicineListFragment", "Invalid username");
             Toast.makeText(getContext(), "유효하지 않은 사용자 이름입니다.", Toast.LENGTH_SHORT).show();
-            return;  // username이 없으면 함수 종료
+            return;
         }
 
-        // dateStr은 이미 onResume()에서 설정됨
-
-        firestoreHelper.getMedicationsForDate(username, dateStr, new FirestoreHelper.MedicationListCallback() {
+        firestoreHelper.getCurrentMedications(username, new FirestoreHelper.MedicationListCallback() {
             @Override
             public void onMedicationListReceived(List<MedicineData> medications) {
-                Log.d("MedicineListFragment", "Medications received: " + medications.size());
+                Log.d("MedicineListFragment", "Current medications received: " + medications.size());
                 for (MedicineData medicine : medications) {
                     Log.d("MedicineListFragment", "Medicine: " + medicine.getPillName());
                 }
 
-                // 즐겨찾기 상태에 따라 정렬 (즐겨찾기 true가 먼저 오도록)
-                medications.sort((m1, m2) -> Boolean.compare(m2.isFavorite(), m1.isFavorite())); // 내림차순 정렬
+                medications.sort((m1, m2) -> Boolean.compare(m2.isFavorite(), m1.isFavorite()));
 
                 medicineList.clear();
                 medicineList.addAll(medications);
-                adapter.notifyDataSetChanged(); // RecyclerView의 어댑터에 알리기
+                adapter.notifyDataSetChanged();
                 updateUI();
-                //updateCalendar(medications); // 캘린더 데이터 업데이트
             }
 
             @Override
             public void onMedicationListFailed(Exception e) {
-                Log.e("MedicineListFragment", "Error getting medications: ", e);
+                Log.e("MedicineListFragment", "Error getting current medications: ", e);
                 binding.medicineRecyclerView.setVisibility(View.GONE);
                 binding.emptyTextView.setVisibility(View.VISIBLE);
                 binding.emptyTextView.setText("복용할 약이 없습니다. 약을 추가해보세요!");
             }
         });
     }
+    // 🔴 여기까지 변경
 
-    // UI 갱신을 위한 메서드 (예: RecyclerView 갱신)
     private void updateUI() {
         if (medicineList.isEmpty()) {
             binding.medicineRecyclerView.setVisibility(View.GONE);
@@ -218,16 +198,14 @@ public class MedicineList extends Fragment implements
     public void onAlarmToggled(String medicationId, boolean isEnabled) {
         if (medicationId == null || medicationId.isEmpty()) {
             Log.e("MedicineListFragment", "Invalid medicationId");
-            return; // medicationId가 없으면 함수 종료
+            return;
         }
         String dateStr = getCurrentDate();
 
-        // medicationId를 autoId로 간주하고 updateAlarmStatus 호출
         firestoreHelper.updateAlarmStatus(username, dateStr, medicationId, isEnabled, new FirestoreHelper.StatusCallback() {
             @Override
             public void onStatusUpdated() {
                 Toast.makeText(getContext(), isEnabled ? "알람이 설정되었습니다." : "알람이 해제되었습니다.", Toast.LENGTH_SHORT).show();
-                // AlarmManager를 사용하여 알람 설정/해제 로직 구현
                 MedicineData updatedMedicine = findMedicineById(medicationId);
                 if (updatedMedicine != null) {
                     if (isEnabled) {
@@ -257,7 +235,7 @@ public class MedicineList extends Fragment implements
                 new FirestoreHelper.StatusCallback() {
                     @Override
                     public void onStatusUpdated() {
-                        getMedicineListFromFirestore(); // 리스트 갱신
+                        getMedicineListFromFirestore();
                     }
 
                     @Override
@@ -274,7 +252,6 @@ public class MedicineList extends Fragment implements
         dialog.show(getParentFragmentManager(), "medicine_detail_dialog");
     }
 
-    // 현재 날짜를 "yyyyMMdd" 형식으로 반환
     private String getCurrentDate() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
         return sdf.format(new Date());
@@ -301,20 +278,17 @@ public class MedicineList extends Fragment implements
         }
     }
 
-    // 수정 화면 열기
     private void openEditMedicine(MedicineData medicine) {
-        // AddEditMedicineFragment로 이동하면서 기존 약 데이터를 전달
         FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
         transaction.replace(R.id.fragment_container, AddEditMedicineFragment.newInstance(medicine, username));
         transaction.addToBackStack(null);
         transaction.commit();
     }
 
-    // 삭제 확인 다이얼로그
     private void confirmDeleteMedicine(int position, MedicineData medicine) {
         if (medicine.getPillName() == null) {
             Toast.makeText(getContext(), "삭제할 약의 이름이 없습니다.", Toast.LENGTH_SHORT).show();
-            adapter.notifyItemChanged(position); // 스와이프 취소
+            adapter.notifyItemChanged(position);
             return;
         }
 
@@ -324,33 +298,30 @@ public class MedicineList extends Fragment implements
                 .setPositiveButton("삭제", (dialog, which) -> {
                     String dateStr = getCurrentDate();
 
-                    // Firestore에서 삭제
                     firestoreHelper.deleteMedicine(
                             username,
-                            dateStr,  // dateStr 사용
-                            medicine.getPillName(),  // pillName 대신 medicationId 사용
+                            dateStr,
+                            medicine.getPillName(),
                             new FirestoreHelper.DeleteCallback() {
                                 @Override
                                 public void onMedicineDeleted() {
                                     Toast.makeText(getContext(), "약이 삭제되었습니다.", Toast.LENGTH_SHORT).show();
                                     adapter.removeItem(position);
                                     updateUI();
-
-                                    // AlarmManager에서 알람 취소
                                     cancelAlarm(medicine);
                                 }
 
                                 @Override
                                 public void onMedicineDeleteFailed(Exception e) {
                                     Toast.makeText(getContext(), "약 삭제에 실패했습니다.", Toast.LENGTH_SHORT).show();
-                                    adapter.notifyItemChanged(position); // 스와이프 취소
+                                    adapter.notifyItemChanged(position);
                                 }
                             }
                     );
 
                 })
                 .setNegativeButton("취소", (dialog, which) -> {
-                    adapter.notifyItemChanged(position); // 스와이프 취소
+                    adapter.notifyItemChanged(position);
                     dialog.dismiss();
                 })
                 .setCancelable(false)
@@ -374,6 +345,23 @@ public class MedicineList extends Fragment implements
                 return;
             }
 
+            AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager == null) {
+                Log.e("MedicineListFragment", "AlarmManager is null");
+                return;
+            }
+
+            // Android 12(S) 이상: 정확한 알람 권한 확인
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                if (!alarmManager.canScheduleExactAlarms()) {
+                    Log.w("MedicineListFragment", "Cannot schedule exact alarms (permission not granted)");
+                    Toast.makeText(requireContext(),
+                            "정확한 알람 권한이 없어 알람을 설정할 수 없습니다.",
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+
             for (String alarmTime : alarmTimes) {
                 String[] timeParts = alarmTime.split(":");
                 if (timeParts.length != 2) {
@@ -384,7 +372,6 @@ public class MedicineList extends Fragment implements
                 int hour = Integer.parseInt(timeParts[0]);
                 int minute = Integer.parseInt(timeParts[1]);
 
-                // 알람 시간 설정
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm", Locale.getDefault());
                 String dateTimeStr = dateStr + " " + alarmTime;
                 Date alarmDate = sdf.parse(dateTimeStr);
@@ -396,7 +383,6 @@ public class MedicineList extends Fragment implements
 
                 long triggerAtMillis = alarmDate.getTime();
                 if (triggerAtMillis <= System.currentTimeMillis()) {
-                    // 이미 지난 시간이라면 다음 날로 설정
                     triggerAtMillis += AlarmManager.INTERVAL_DAY;
                 }
 
@@ -415,12 +401,22 @@ public class MedicineList extends Fragment implements
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
                 );
 
-                AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
-                if (alarmManager != null) {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-                    Log.d("MedicineListFragment", "Alarm set for: " + alarmDate + " with pillName: " + medicine.getPillName() + " and alarmTime: " + alarmTime);
-                } else {
-                    Log.e("MedicineListFragment", "AlarmManager is null");
+                try {
+                    alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            triggerAtMillis,
+                            pendingIntent
+                    );
+                    Log.d("MedicineListFragment", "Alarm set for: " + alarmDate
+                            + " with pillName: " + medicine.getPillName()
+                            + " and alarmTime: " + alarmTime);
+                } catch (SecurityException se) {
+                    Log.e("MedicineListFragment", "SecurityException while setting exact alarm", se);
+                    Toast.makeText(requireContext(),
+                            "정확한 알람 권한이 없어 알람을 설정할 수 없습니다.",
+                            Toast.LENGTH_SHORT).show();
+                    // 정확 알람 권한이 없는 상태이므로 더 이상 반복할 필요 없음
+                    break;
                 }
             }
         } catch (Exception e) {

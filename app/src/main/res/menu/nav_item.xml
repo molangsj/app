@@ -5,20 +5,23 @@
         android:enabled="true"
         android:icon="@drawable/baseline_checklist"
         android:title="Checklist"/>
+
     <item
         android:id="@+id/page_4"
         android:enabled="true"
         android:icon="@drawable/baseline_calendar_month_24"
         android:title="Calendar"/>
+
     <item
         android:id="@+id/page_2"
         android:enabled="true"
-        android:icon="@drawable/baseline_history"
-        android:title="History"/>
+        android:icon="@drawable/baseline_family"
+        android:title="Family"/>
 
     <item
         android:id="@+id/page_5"
         android:enabled="true"
-        android:icon="@drawable/baseline_family"
-        android:title="Family"/>
+        android:icon="@drawable/baseline_person_24"
+        android:title="My Page"/>
+
 </menu>

@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity implements
     private AuthHelper authHelper;
     private FirestoreHelper firestoreHelper;
     private String username;
+    private String userEmail;
     private static final int REQUEST_CODE_POST_NOTIFICATIONS = 1;
     private static final int REQUEST_WRITE_STORAGE = 112;
     private static final String CHANNEL_ID = "medicine_alarm";
@@ -66,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements
                     if (getAlarmPermission()) {
                         Toast.makeText(this, "정확한 알람 권한이 허용되었습니다.", Toast.LENGTH_SHORT).show();
                         // 권한이 허용되었으므로 테스트 알람 설정을 다시 시도할 수 있습니다.
-                        setTestAlarm();
                     } else {
                         Toast.makeText(this, "정확한 알람 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
                     }
@@ -98,6 +98,8 @@ public class MainActivity extends AppCompatActivity implements
             return;
         }
 
+        userEmail = email;
+
         setContentView(R.layout.activity_nav_main);
         createNotificationChannel();
         requestNotificationPermission();
@@ -128,16 +130,6 @@ public class MainActivity extends AppCompatActivity implements
                 Log.e("MainActivity", "Error checking user existence", e);
             }
         });
-
-        Button testAlarmButton = findViewById(R.id.button_set_test_alarm);
-        if (testAlarmButton != null) {
-            testAlarmButton.setOnClickListener(v -> {
-                Log.d(TAG, "onCreate: Test Alarm button clicked");
-                setTestAlarm();
-            });
-        } else {
-            Log.e(TAG, "onCreate: button_set_test_alarm not found in layout");
-        }
     }
 
     /**
@@ -200,42 +192,30 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int itemId = item.getItemId();
-//                if (itemId == R.id.bottomnavigation_list) {
-//                    MedicineList medicineListFragment = MedicineList.newInstance(username);
-//                    transferTo(medicineListFragment);
-//                    return true;
-//                }
-//
-//                if (itemId == R.id.bottomnavigation_calendar) {
-//                    CalendarFragment calendarFragment = CalendarFragment.newInstance(username);
-//                    transferTo(calendarFragment);
-//                    return true;
-//                }
                 if (itemId == R.id.page_1) {
-                    // MedicineList 프래그먼트에 familyMemberId 전달
                     MedicineList medicineListFragment = MedicineList.newInstance(username);
-//                    Bundle args = new Bundle();
-//                    args.putString("familyMemberId", familyMemberId);
-//                    args.putString("memberId", familyMemberId); // memberId도 familyMemberId로 설정
-//                    medicineListFragment.setArguments(args);
                     transferTo(medicineListFragment);
                     return true;
                 }
-                if(itemId == R.id.page_2){
-                    transferTo(HistoryFragment.newInstance("param1", "param2"));
-                    return true;
-                }
-                if(itemId == R.id.page_4){
-                    // CalendarFragment에 familyMemberId 전달
+
+                if (itemId == R.id.page_4) {
                     CalendarFragment calendarFragment = CalendarFragment.newInstance(username);
                     transferTo(calendarFragment);
                     return true;
                 }
 
-                if(itemId == R.id.page_5){
+// History 자리에 Family 배치
+                if (itemId == R.id.page_2) {
                     transferTo(Family_main_sub.newInstance("param1", "param2"));
                     return true;
                 }
+
+// 네 번째 탭: My Page
+                if (itemId == R.id.page_5) {
+                    transferTo(MyPageFragment.newInstance(username, userEmail));
+                    return true;
+                }
+
 
                 return false;
             }
@@ -294,48 +274,6 @@ public class MainActivity extends AppCompatActivity implements
 
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
-        }
-    }
-
-    private void setTestAlarm() {
-        try {
-            // 정확한 알람 권한 확인
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // Android 12 이상
-                if (!getAlarmPermission()) {
-                    requestExactAlarm_permission();
-                    return; // 권한 요청 후 알람 설정 중단
-                }
-            }
-
-            Calendar calendar = Calendar.getInstance();
-            calendar.add(Calendar.SECOND, 10); // 10초 후 알람 설정
-
-            Intent intent = new Intent(this, AlarmReceiver.class);
-            intent.putExtra("username", username);
-            intent.putExtra("dateStr", "20240101");
-            intent.putExtra("pillName", "TestPill");
-            intent.putExtra("alarmTime", "10:00"); // 추가된 부분
-
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-            AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-            if (alarmManager != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                } else {
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                }
-                Log.d(TAG, "setTestAlarm: Test Alarm set for: " + calendar.getTime());
-                Toast.makeText(this, "테스트 알람이 설정되었습니다.", Toast.LENGTH_SHORT).show();
-            } else {
-                Log.e(TAG, "setTestAlarm: AlarmManager is null");
-                Toast.makeText(this, "알람 설정에 실패했습니다.", Toast.LENGTH_SHORT).show();
-            }
-        } catch (SecurityException e) {
-            Log.e(TAG, "setTestAlarm: SecurityException when setting alarm", e);
-            Toast.makeText(this, "알람 설정 권한이 없습니다.", Toast.LENGTH_SHORT).show();
         }
     }
 
