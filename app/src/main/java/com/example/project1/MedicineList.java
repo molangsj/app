@@ -148,7 +148,7 @@ public class MedicineList extends Fragment implements
         itemTouchHelper.attachToRecyclerView(binding.medicineRecyclerView);
     }
 
-    // 🔴 여기서부터: "오늘 날짜"가 아니라 currentMedications 컬렉션을 봄
+    // Firestore에서 약 정보 가져오기
     private void getMedicineListFromFirestore() {
         if (username == null || username.isEmpty()) {
             Log.e("MedicineListFragment", "Invalid username");
@@ -164,6 +164,7 @@ public class MedicineList extends Fragment implements
                     Log.d("MedicineListFragment", "Medicine: " + medicine.getPillName());
                 }
 
+                // 즐겨찾기 우선 정렬
                 medications.sort((m1, m2) -> Boolean.compare(m2.isFavorite(), m1.isFavorite()));
 
                 medicineList.clear();
@@ -181,7 +182,7 @@ public class MedicineList extends Fragment implements
             }
         });
     }
-    // 🔴 여기까지 변경
+
 
     private void updateUI() {
         if (medicineList.isEmpty()) {
@@ -298,26 +299,30 @@ public class MedicineList extends Fragment implements
                 .setPositiveButton("삭제", (dialog, which) -> {
                     String dateStr = getCurrentDate();
 
-                    firestoreHelper.deleteMedicine(
+                    // 삭제 확인 다이얼로그 안의 '삭제' 버튼 콜백 부분
+
+                    firestoreHelper.deleteCurrentMedication(
                             username,
-                            dateStr,
                             medicine.getPillName(),
-                            new FirestoreHelper.DeleteCallback() {
+                            new FirestoreHelper.StatusCallback() {
                                 @Override
-                                public void onMedicineDeleted() {
+                                public void onStatusUpdated() {
                                     Toast.makeText(getContext(), "약이 삭제되었습니다.", Toast.LENGTH_SHORT).show();
                                     adapter.removeItem(position);
                                     updateUI();
+
+                                    // AlarmManager에서 알람 취소
                                     cancelAlarm(medicine);
                                 }
 
                                 @Override
-                                public void onMedicineDeleteFailed(Exception e) {
+                                public void onStatusUpdateFailed(Exception e) {
                                     Toast.makeText(getContext(), "약 삭제에 실패했습니다.", Toast.LENGTH_SHORT).show();
-                                    adapter.notifyItemChanged(position);
+                                    adapter.notifyItemChanged(position); // 스와이프 취소
                                 }
                             }
                     );
+
 
                 })
                 .setNegativeButton("취소", (dialog, which) -> {

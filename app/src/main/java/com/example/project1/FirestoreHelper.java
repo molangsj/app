@@ -456,7 +456,7 @@ public class FirestoreHelper {
 
         pillRef.set(medicineData)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d("FirestoreHelper", "Medicine added successfully (per-date)");
+                    Log.d("FirestoreHelper", "Medicine added successfully");
 
                     MedicineData addedMedicine = new MedicineData();
                     addedMedicine.setPillName(pillName);
@@ -471,7 +471,7 @@ public class FirestoreHelper {
                         addedMedicine.setPillIsCheckedAt(i, 0);
                     }
 
-                    // currentMedications에도 동기화
+                    // ➜ currentMedications에도 동기화
                     upsertCurrentMedication(username, addedMedicine, new StatusCallback() {
                         @Override
                         public void onStatusUpdated() {
@@ -507,13 +507,29 @@ public class FirestoreHelper {
 
         pillRef.update(updates)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d("FirestoreHelper", "Caution updated successfully for: " + pillName);
+                    Log.d("FirestoreHelper", "Favorite status updated successfully for: " + pillName);
+
+                    // ➜ currentMedications에도 favorite 동기화
+                    DocumentReference currentRef = db.collection("FamilyMember")
+                            .document(username)
+                            .collection("currentMedications")
+                            .document(pillName);
+
+                    currentRef.update(updates)
+                            .addOnSuccessListener(v ->
+                                    Log.d("FirestoreHelper", "Favorite synced to currentMedications for: " + pillName)
+                            )
+                            .addOnFailureListener(e ->
+                                    Log.e("FirestoreHelper", "Failed to sync favorite to currentMedications for: " + pillName, e)
+                            );
+
                     callback.onStatusUpdated();
                 })
                 .addOnFailureListener(e -> {
-                    Log.e("FirestoreHelper", "Failed to update caution for: " + pillName, e);
+                    Log.e("FirestoreHelper", "Failed to update favorite status for: " + pillName, e);
                     callback.onStatusUpdateFailed(e);
                 });
+
     }
 
     public void updateAlarmStatus(String username, String dateStr, String pillName, boolean alarmEnabled, StatusCallback callback) {
@@ -878,7 +894,7 @@ public class FirestoreHelper {
 
     // --------- "지금 복용 중인 약" : currentMedications 컬렉션 ---------
 
-    // 목록 화면에서 사용할: 현재 복용 약 전체 가져오기
+    /// "지금 복용 중인 약" 목록 가져오기
     public void getCurrentMedications(
             String username,
             MedicationListCallback callback
@@ -909,14 +925,17 @@ public class FirestoreHelper {
                 });
     }
 
-    // currentMedications에 upsert
+    // currentMedications upsert (있으면 수정, 없으면 생성)
     public void upsertCurrentMedication(
             String username,
             MedicineData medicine,
             StatusCallback callback
     ) {
-        if (username == null || username.isEmpty() || medicine == null || medicine.getPillName() == null) {
-            callback.onStatusUpdateFailed(new IllegalArgumentException("Invalid arguments for upsertCurrentMedication"));
+        if (username == null || username.isEmpty()
+                || medicine == null || medicine.getPillName() == null) {
+            callback.onStatusUpdateFailed(
+                    new IllegalArgumentException("Invalid arguments for upsertCurrentMedication")
+            );
             return;
         }
 
@@ -936,14 +955,17 @@ public class FirestoreHelper {
                 });
     }
 
-    // currentMedications에서만 삭제
+    // currentMedications에서만 삭제 (과거 날짜 기록은 건드리지 않음)
     public void deleteCurrentMedication(
             String username,
             String pillName,
             StatusCallback callback
     ) {
-        if (username == null || username.isEmpty() || pillName == null || pillName.isEmpty()) {
-            callback.onStatusUpdateFailed(new IllegalArgumentException("Invalid arguments for deleteCurrentMedication"));
+        if (username == null || username.isEmpty()
+                || pillName == null || pillName.isEmpty()) {
+            callback.onStatusUpdateFailed(
+                    new IllegalArgumentException("Invalid arguments for deleteCurrentMedication")
+            );
             return;
         }
 
@@ -962,6 +984,7 @@ public class FirestoreHelper {
                     callback.onStatusUpdateFailed(e);
                 });
     }
+
 
     // --------- Callback 인터페이스 ---------
 
