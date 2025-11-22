@@ -388,7 +388,7 @@ public class AddEditMedicineFragment extends Fragment {
                 int index = alarmTimes.indexOf(time);
                 if (index != -1) {
                     if (medicine != null) {
-                        firestoreHelper.removePillIsChecked(username, medicine.getDateStr(), pillNameInput(), index, new FirestoreHelper.StatusCallback() {
+                        firestoreHelper.resetPillIsCheckedAt(username, medicine.getDateStr(), pillNameInput(), index, new FirestoreHelper.StatusCallback() {
                             @Override
                             public void onStatusUpdated() {
                                 alarmTimes.remove(index);
@@ -711,14 +711,26 @@ public class AddEditMedicineFragment extends Fragment {
 
             AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
             if (alarmManager != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                // ✅ Android 12 이상에서는 권한 확인
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (alarmManager.canScheduleExactAlarms()) {
+                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                        Log.d("AddEditMedicineFragment", "Alarm set for: " + calendar.getTime());
+                    } else {
+                        Log.e("AddEditMedicineFragment", "Cannot schedule exact alarms - permission not granted");
+                        Toast.makeText(getContext(), "정확한 알람 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+                    }
                 } else {
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                    // Android 12 미만
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                        alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                    } else {
+                        alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                    }
+                    Log.d("AddEditMedicineFragment", "Alarm set for: " + calendar.getTime());
                 }
-                Log.d("AddEditMedicineFragment", "Alarm set for: " + calendar.getTime() + " with pillName: " + pillName + " and alarmTime: " + alarmTime + " requestCode: " + requestCode);
             } else {
                 Log.e("AddEditMedicineFragment", "AlarmManager is null");
             }

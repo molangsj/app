@@ -147,6 +147,7 @@ public class AuthHelper {
         firestoreHelper.isUsernameAvailable(username, new FirestoreHelper.UsernameCallback() {
             @Override
             public void onUsernameAvailable() {
+                // username 사용 가능
                 mAuth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener(task -> {
                             if (task.isSuccessful()) {
@@ -163,24 +164,37 @@ public class AuthHelper {
                                             callback.onAuthFailed(e);
                                         }
                                     });
-                                } else {
-                                    callback.onAuthFailed(new Exception("User is null after registration"));
                                 }
-                            } else {
-                                Exception exception = task.getException();
-                                callback.onAuthFailed(exception != null ? exception : new Exception("Unknown error"));
                             }
                         });
             }
 
             @Override
             public void onUsernameExists() {
-                callback.onAuthFailed(new Exception("Username is already taken"));
+                // username 이미 존재
+                callback.onAuthFailed(new Exception("이미 사용 중인 사용자 이름입니다."));
+            }
+
+            @Override
+            public void onUsernameUnavailable(String reason) {
+                // username 사용 불가
+                callback.onAuthFailed(new Exception(reason));
             }
 
             @Override
             public void onUsernameCheckFailed(Exception e) {
+                // 확인 실패
                 callback.onAuthFailed(e);
+            }
+
+            @Override
+            public void onUsernameReceived(String username) {
+                // 사용되지 않음
+            }
+
+            @Override
+            public void onUsernameFailed(Exception e) {
+                // 사용되지 않음
             }
         });
     }
