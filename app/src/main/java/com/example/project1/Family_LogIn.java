@@ -73,9 +73,10 @@ public class Family_LogIn extends AppCompatActivity {
     }
 
     private void showLoginFragment2() {
-        FamilyLogin loginFragment = new FamilyLogin();
+        FamilyLogin2 loginFragment = new FamilyLogin2();
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
         transaction.replace(android.R.id.content, loginFragment);
         transaction.commit();
     }
+
 }
