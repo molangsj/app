@@ -280,7 +280,6 @@ public class Family_main_sub extends Fragment {
 
         db.collection("FamilyMember").get()
                 .addOnCompleteListener(task -> {
-                    // 성공/실패 상관없이 onComplete에서 로딩 반드시 끔
                     if (activity != null) {
                         activity.showLoading(false);
                     }
@@ -288,8 +287,17 @@ public class Family_main_sub extends Fragment {
                     if (task.isSuccessful()) {
                         familyMembers.clear();
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            String docId = document.getId();
-                            familyMembers.add(new FamilyMember(docId));
+                            String docId = document.getId(); // 실제 username/문서 ID
+
+                            FamilyMember member = new FamilyMember(docId);
+
+                            // Firestore 문서의 displayName 필드를 화면 표시용 이름으로 사용
+                            String displayName = document.getString("displayName");
+                            if (displayName != null && !displayName.trim().isEmpty()) {
+                                member.setName(displayName);
+                            }
+
+                            familyMembers.add(member);
                         }
 
                         // 저장해 둔 가족 목록 복원
