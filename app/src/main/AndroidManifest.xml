@@ -31,11 +31,9 @@
             android:name="com.google.firebase.ml.vision.DEPENDENCIES"
             android:value="ocr" />
 
-        <!-- ActivityFortest의 LAUNCHER 설정 제거 -->
         <activity
             android:name=".ActivityFortest"
             android:exported="true">
-            <!-- intent-filter 주석 처리 또는 제거 -->
         </activity>
 
         <!-- MainActivity를 LAUNCHER로 설정 -->
