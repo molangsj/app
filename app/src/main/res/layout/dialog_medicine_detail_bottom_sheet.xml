@@ -54,6 +54,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="알람 시간 추가"
+            android:backgroundTint="@color/colorPrimary"
+            android:textColor="@color/black"
             android:layout_marginBottom="16dp" />
 
         <!-- 주의사항 입력 -->
@@ -101,6 +103,7 @@
             android:id="@+id/btnSaveDetails"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/colorPrimaryVariant"
             android:text="저장" />
 
     </LinearLayout>

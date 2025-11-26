@@ -22,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="사용자 이름 설정"
-        android:background="@drawable/round_corner_4brown"
+        android:backgroundTint="@color/colorPrimaryVariant"
         android:layout_marginTop="16dp"
         android:layout_marginLeft="60dp"
         android:layout_marginRight="60dp"/>

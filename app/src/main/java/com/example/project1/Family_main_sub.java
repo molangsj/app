@@ -27,6 +27,7 @@ import com.example.project1.databinding.FamilyMainSubBinding;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,7 +52,7 @@ public class Family_main_sub extends Fragment {
     private RecyclerView recyclerView;
     private FamilyAdapter adapter;
     private static final String PREF_NAME = "family_prefs";
-    private static final String KEY_DISPLAYED = "displayed_members";
+    private static final String KEY_DISPLAYED_PREFIX = "displayed_members_";
 
 
     // Firestore에서 읽어온 전체 유저 목록 (닉네임 검색의 대상)
@@ -156,9 +157,22 @@ public class Family_main_sub extends Fragment {
         });
     }
 
+    private String getCurrentUid() {
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        return (auth.getCurrentUser() != null) ? auth.getCurrentUser().getUid() : null;
+    }
+
+
     // 현재 displayedMembers 를 SharedPreferences 에 저장
+    // 현재 displayedMembers 를 SharedPreferences 에 저장 (계정별로 분리)
     private void saveDisplayedMembersToPrefs() {
         if (getContext() == null) return;
+
+        String uid = getCurrentUid();
+        if (uid == null) {
+            // 로그인 안 되어 있으면 저장 안 함
+            return;
+        }
 
         SharedPreferences prefs = requireContext()
                 .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -169,17 +183,26 @@ public class Family_main_sub extends Fragment {
             idSet.add(m.getDocId());
         }
 
-        prefs.edit().putStringSet(KEY_DISPLAYED, idSet).apply();
+        String key = KEY_DISPLAYED_PREFIX + uid;
+        prefs.edit().putStringSet(key, idSet).apply();
     }
 
-    // SharedPreferences 에 저장된 idSet 을 읽어와 displayedMembers 로 복원
+
+    // SharedPreferences 에 저장된 idSet 을 읽어와 displayedMembers 로 복원 (계정별)
     private void restoreDisplayedMembersFromPrefs() {
         if (getContext() == null) return;
+
+        String uid = getCurrentUid();
+        if (uid == null) {
+            // 로그인 안 되어 있으면 복원 안 함
+            return;
+        }
 
         SharedPreferences prefs = requireContext()
                 .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
 
-        Set<String> idSet = prefs.getStringSet(KEY_DISPLAYED, null);
+        String key = KEY_DISPLAYED_PREFIX + uid;
+        Set<String> idSet = prefs.getStringSet(key, null);
         if (idSet == null || idSet.isEmpty()) {
             return;
         }
@@ -194,6 +217,7 @@ public class Family_main_sub extends Fragment {
         }
         adapter.notifyDataSetChanged();
     }
+
 
 
 
@@ -231,7 +255,6 @@ public class Family_main_sub extends Fragment {
         return false;
     }
 
-    // 닉네임으로 familyMembers에서 검색해서 displayedMembers에 추가
     private void searchAndAddMemberByNickname(String nickname) {
         if (familyMembers == null || familyMembers.isEmpty()) {
             Toast.makeText(getContext(), "가족 멤버 목록을 불러오지 못했습니다.", Toast.LENGTH_SHORT).show();
@@ -246,8 +269,15 @@ public class Family_main_sub extends Fragment {
 
         FamilyMember target = null;
         for (FamilyMember member : familyMembers) {
-            // 닉네임을 문서 ID(docId)로 사용하고 있으므로 이렇게 비교
+
+            // 문서 ID(username)으로 검색
             if (nickname.equals(member.getDocId())) {
+                target = member;
+                break;
+            }
+
+            // ★ displayName 으로도 검색
+            if (nickname.equals(member.getName())) {
                 target = member;
                 break;
             }
@@ -258,15 +288,11 @@ public class Family_main_sub extends Fragment {
             return;
         }
 
-        // 제거 목록에 들어있었다면 제거
-        if (removedMemberIds != null) {
-            removedMemberIds.remove(target.getDocId());
-        }
-
         displayedMembers.add(target);
         adapter.notifyItemInserted(displayedMembers.size() - 1);
         saveDisplayedMembersToPrefs();
     }
+
 
     // Firestore에서 전체 FamilyMember 문서 로딩 (닉네임 검색 대상)
     private void loadFamilyMembersFromFirestore() {
@@ -280,7 +306,6 @@ public class Family_main_sub extends Fragment {
 
         db.collection("FamilyMember").get()
                 .addOnCompleteListener(task -> {
-                    // 성공/실패 상관없이 onComplete에서 로딩 반드시 끔
                     if (activity != null) {
                         activity.showLoading(false);
                     }
@@ -288,8 +313,17 @@ public class Family_main_sub extends Fragment {
                     if (task.isSuccessful()) {
                         familyMembers.clear();
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            String docId = document.getId();
-                            familyMembers.add(new FamilyMember(docId));
+                            String docId = document.getId(); // 실제 username/문서 ID
+
+                            FamilyMember member = new FamilyMember(docId);
+
+                            // Firestore 문서의 displayName 필드를 화면 표시용 이름으로 사용
+                            String displayName = document.getString("displayName");
+                            if (displayName != null && !displayName.trim().isEmpty()) {
+                                member.setName(displayName);
+                            }
+
+                            familyMembers.add(member);
                         }
 
                         // 저장해 둔 가족 목록 복원

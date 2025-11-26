@@ -82,7 +82,7 @@ public class FamilyAdapter extends RecyclerView.Adapter<FamilyAdapter.FamilyView
         }
 
         public void bind(FamilyMember member, int position, OnExtraInfoClickListener listener, OnDrugInfoClickListener drugInfoListener, OnItemLongClickListener longClickListener) {
-            nameText.setText(member.getDocId());
+            nameText.setText(member.getName());
             extraInfoButton.setOnClickListener(v -> {
                 if (FamilyAdapter.this.extraInfoListener != null) {
                     FamilyAdapter.this.extraInfoListener.onExtraInfoClick(position);

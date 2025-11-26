@@ -31,13 +31,22 @@ public class ActivityFortest extends AppCompatActivity implements
         firestoreHelper = new FirestoreHelper();
         authHelper = new AuthHelper(this);
 
-        // 초기 프래그먼트 설정: FamilyLogin
+        // ① 이미 로그인된 사용자가 있으면 자동 로그인 처리
+        FirebaseUser currentUser = authHelper.getCurrentUser();
+        if (currentUser != null) {
+            // onLoginSuccess에서 이미 구현한 로직 재사용
+            onLoginSuccess(currentUser.getUid());
+            return;
+        }
+
+        // ② 로그인 안 되어 있으면 로그인 프래그먼트부터 시작
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.test_fragment_container, new FamilyLogin2())
                     .commit();
         }
     }
+
 
     @Override
     public void onLoginSuccess(String userId) {

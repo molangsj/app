@@ -81,6 +81,8 @@ public class AuthHelper {
 
     // Google Sign-In 옵션 설정
     private void configureGoogleSignIn() {
+        String clientId = context.getString(R.string.default_web_client_id);
+        Log.d("AUTH", "default_web_client_id at runtime = " + clientId);
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(context.getString(R.string.default_web_client_id))
                 .requestEmail()
@@ -249,12 +251,14 @@ public class AuthHelper {
         Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
         try {
             GoogleSignInAccount acct = task.getResult(ApiException.class);
+            Log.d("AUTH", "Google sign-in success: " + acct.getEmail());
             if (acct != null) {
                 firebaseAuthWithGoogle(acct, callback);
             } else {
                 callback.onGoogleSignInFailed(new Exception("GoogleSignInAccount is null"));
             }
         } catch (ApiException e) {
+            Log.e("AUTH", "Google sign-in failed, code=" + e.getStatusCode(), e);
             callback.onGoogleSignInFailed(e);
         }
     }

@@ -271,9 +271,8 @@
             android:id="@+id/add_medicine_add"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:backgroundTint="@color/colorPrimaryVariant"
             android:layout_marginTop="30dp"
-            android:background="@drawable/radius_button_90"
-            android:backgroundTint="#C4A8A8"
             android:textStyle="bold"
             android:text="저장"
             android:layout_gravity="center_horizontal"/>
