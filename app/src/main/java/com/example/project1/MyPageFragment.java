@@ -50,6 +50,8 @@ public class MyPageFragment extends Fragment {
     private ImageView imageProfile;
     private Switch switchDarkMode;
     private Button buttonLogout;
+    private TextView textMedicationCount;
+    private TextView textTodayAlarms;
 
     private FirestoreHelper firestoreHelper;
     private FirebaseFirestore db;
@@ -100,11 +102,14 @@ public class MyPageFragment extends Fragment {
         imageProfile = view.findViewById(R.id.image_profile);
         switchDarkMode = view.findViewById(R.id.switch_dark_mode);
         buttonLogout = view.findViewById(R.id.button_logout);
+        textMedicationCount = view.findViewById(R.id.text_medication_count);
+        textTodayAlarms = view.findViewById(R.id.text_today_alarms);
 
         textUsername.setText(username != null ? username : "-");
         textEmail.setText(email != null ? email : "-");
 
         loadUserInfoFromFirestore();
+        loadMedicationStats();
 
         imageEditUsername.setOnClickListener(v -> showEditNicknameDialog());
 
@@ -163,6 +168,45 @@ public class MyPageFragment extends Fragment {
                         Log.e("MyPageFragment", "Failed to load user info", e);
                     });
         }
+    }
+
+    private void loadMedicationStats() {
+        if (username == null || username.isEmpty()) {
+            return;
+        }
+
+        db.collection("FamilyMember")
+                .document(username)
+                .collection("currentMedications")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
+                        int medicationCount = queryDocumentSnapshots.size();
+                        int totalAlarmsToday = 0;
+
+                        // 각 약의 알림 횟수 계산
+                        for (com.google.firebase.firestore.DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
+                            // alarmTimes 배열 가져오기
+                            Object alarmTimesObj = doc.get("alarmTimes");
+                            if (alarmTimesObj instanceof java.util.List) {
+                                java.util.List<?> alarmTimes = (java.util.List<?>) alarmTimesObj;
+                                totalAlarmsToday += alarmTimes.size();
+                            }
+                        }
+
+                        // UI 업데이트
+                        textMedicationCount.setText("등록된 약: " + medicationCount + "개");
+                        textTodayAlarms.setText("오늘 알림 예정: " + totalAlarmsToday + "회");
+                    } else {
+                        textMedicationCount.setText("등록된 약: 0개");
+                        textTodayAlarms.setText("오늘 알림 예정: 0회");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("MyPageFragment", "Failed to load medication stats", e);
+                    textMedicationCount.setText("등록된 약: -");
+                    textTodayAlarms.setText("오늘 알림 예정: -");
+                });
     }
 
     private void loadProfileImage(String imageUrl) {

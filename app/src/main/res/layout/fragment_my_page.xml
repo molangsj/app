@@ -86,24 +86,84 @@
             android:layout_marginTop="24dp"
             android:background="?attr/colorOutlineVariant" />
 
+        <!-- 복약 정보 섹션 (이 부분만 교체) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:background="@android:color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="등록된 약"
+                    android:textSize="15sp"
+                    android:textColor="#333333"/>
+
+                <TextView
+                    android:id="@+id/text_medication_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="7개"
+                    android:textSize="15sp"
+                    android:textColor="#666666"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="오늘 알림 예정"
+                    android:textSize="15sp"
+                    android:textColor="#333333"/>
+
+                <TextView
+                    android:id="@+id/text_today_alarms"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="8회"
+                    android:textSize="15sp"
+                    android:textColor="#666666"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 다크모드 섹션 (이 부분만 교체) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginTop="24dp">
+            android:padding="20dp"
+            android:background="@android:color/white">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="다크 모드"
-                android:textSize="16sp" />
+                android:textSize="15sp"
+                android:textColor="#333333"/>
 
             <Switch
                 android:id="@+id/switch_dark_mode"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"/>
         </LinearLayout>
 
         <Button
