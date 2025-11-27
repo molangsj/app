@@ -139,33 +139,58 @@ public class Family_drug_info extends Fragment {
 
     private void fetchDrugInfoFromLatestDate(View fragmentView, String latestDate) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        // 최신 날짜 컬렉션의 모든 문서 가져오기
+
+        // 1. 약 (pillType < 200) 가져오기
         db.collection("FamilyMember")
                 .document(memberId2)
                 .collection(latestDate)
+                .whereLessThan("pillType", 200L)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (!querySnapshot.isEmpty()) {
                         for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
-                            // 약 이름은 문서 이름
                             String drugName = documentSnapshot.getId();
                             Log.d("Firestore", "Drug name fetched: " + drugName);
-                            // 약 정보는 문서 데이터
+
                             Map<String, Object> drugData = documentSnapshot.getData();
                             if (drugData != null) {
-                                // pilltype 및 pillischecked 필드 가져오기
                                 Long pillIsChecked = (Long) drugData.getOrDefault("pillIsChecked", 0L);
                                 Long pillType = (Long) drugData.getOrDefault("pillType", 0L);
 
-                                // UI 업데이트
                                 addDrugInfoToLayout(fragmentView, drugName, pillType, pillIsChecked);
                             }
                         }
                     } else {
-                        Log.d("Firestore", latestDate + " 컬렉션에 문서가 없습니다.");
+                        Log.d("Firestore", latestDate + " 컬렉션에 약 문서가 없습니다.");
                     }
                 })
-                .addOnFailureListener(e -> Log.e("Firestore", latestDate + " 컬렉션 데이터 가져오기 실패", e));
+                .addOnFailureListener(e -> Log.e("Firestore", latestDate + " 약 데이터 가져오기 실패", e));
+
+        // 2. 보조제 (pillType >= 200) 가져오기
+        db.collection("FamilyMember")
+                .document(memberId2)
+                .collection(latestDate)
+                .whereGreaterThanOrEqualTo("pillType", 200L)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
+                            String drugName = documentSnapshot.getId();
+                            Log.d("Firestore", "Supplement name fetched: " + drugName);
+
+                            Map<String, Object> drugData = documentSnapshot.getData();
+                            if (drugData != null) {
+                                Long pillIsChecked = (Long) drugData.getOrDefault("pillIsChecked", 0L);
+                                Long pillType = (Long) drugData.getOrDefault("pillType", 0L);
+
+                                addDrugInfoToLayout(fragmentView, drugName, pillType, pillIsChecked);
+                            }
+                        }
+                    } else {
+                        Log.d("Firestore", latestDate + " 컬렉션에 보조제 문서가 없습니다.");
+                    }
+                })
+                .addOnFailureListener(e -> Log.e("Firestore", latestDate + " 보조제 데이터 가져오기 실패", e));
     }
 
 

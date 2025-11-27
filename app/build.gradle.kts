@@ -66,6 +66,13 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-database:20.0.3")
 
+    // Glide for image loading
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
+
+    // Firebase Storage (아마 이미 있을 수 있음)
+    implementation ("com.google.firebase:firebase-storage:20.3.0")
+
     implementation ("com.kakao.sdk:v2-all:2.20.6")
     implementation ("com.kakao.sdk:v2-user:2.20.6")
     implementation ("com.kakao.sdk:v2-share:2.20.6")

@@ -3,6 +3,9 @@
 package com.example.project1;
 
 import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.PorterDuff;
+import androidx.core.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -55,6 +58,9 @@ public class Calendar_Adapter extends RecyclerView.Adapter<Calendar_Adapter.Cale
 
             if (medicineDates.contains(dateStr)) {
                 holder.pillIcon.setVisibility(View.VISIBLE); // 약 아이콘 표시
+
+                // ⭐ 다크 모드에 따라 아이콘 색상 적용
+                applyIconColorForTheme(holder.pillIcon);
             } else {
                 holder.pillIcon.setVisibility(View.GONE); // 약 아이콘 숨기기
             }
@@ -64,6 +70,35 @@ public class Calendar_Adapter extends RecyclerView.Adapter<Calendar_Adapter.Cale
                     onItemClickListener.onItemClick(date);
                 }
             });
+        }
+    }
+
+    /**
+     * ⭐ 다크 모드 여부에 따라 아이콘 색상 변경
+     */
+    private void applyIconColorForTheme(ImageView iconView) {
+        // 현재 다크 모드인지 확인
+        int nightModeFlags = context.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK;
+
+        switch (nightModeFlags) {
+            case Configuration.UI_MODE_NIGHT_YES:
+                // 다크 모드 - 흰색 아이콘
+                iconView.setColorFilter(
+                        ContextCompat.getColor(context, android.R.color.white),
+                        PorterDuff.Mode.SRC_IN
+                );
+                break;
+
+            case Configuration.UI_MODE_NIGHT_NO:
+            case Configuration.UI_MODE_NIGHT_UNDEFINED:
+            default:
+                // 라이트 모드 - 검은색 아이콘
+                iconView.setColorFilter(
+                        ContextCompat.getColor(context, android.R.color.black),
+                        PorterDuff.Mode.SRC_IN
+                );
+                break;
         }
     }
 

@@ -1,9 +1,12 @@
 package com.example.project1;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,10 +24,22 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class MyPageFragment extends Fragment {
 
     private static final String ARG_USERNAME = "username";
     private static final String ARG_EMAIL = "email";
+    private static final int PICK_IMAGE_REQUEST = 100;
 
     private String username;
     private String email;
@@ -37,6 +52,8 @@ public class MyPageFragment extends Fragment {
     private Button buttonLogout;
 
     private FirestoreHelper firestoreHelper;
+    private FirebaseFirestore db;
+    private FirebaseAuth mAuth;
 
     public static MyPageFragment newInstance(String username, String email) {
         MyPageFragment fragment = new MyPageFragment();
@@ -53,6 +70,8 @@ public class MyPageFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         firestoreHelper = new FirestoreHelper();
+        db = FirebaseFirestore.getInstance();
+        mAuth = FirebaseAuth.getInstance();
 
         if (getArguments() != null) {
             username = getArguments().getString(ARG_USERNAME);
@@ -60,7 +79,6 @@ public class MyPageFragment extends Fragment {
         }
     }
 
-    // 전역 로딩 헬퍼
     private void showGlobalLoading(boolean show) {
         if (!isAdded()) return;
         if (getActivity() instanceof MainActivity) {
@@ -102,42 +120,153 @@ public class MyPageFragment extends Fragment {
             requireActivity().finish();
         });
 
-        imageProfile.setOnClickListener(v -> {
-            Toast.makeText(requireContext(), "프로필 사진 변경 기능은 추후 추가 가능합니다.", Toast.LENGTH_SHORT).show();
-        });
+        imageProfile.setOnClickListener(v -> openImagePicker());
 
         return view;
     }
 
     private void loadUserInfoFromFirestore() {
-        if (username == null || username.isEmpty()) return;
+        // username이 이미 있다면 바로 username으로 조회
+        if (username != null && !username.isEmpty()) {
+            showGlobalLoading(true);
+
+            db.collection("FamilyMember")
+                    .document(username)
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        showGlobalLoading(false);
+
+                        if (documentSnapshot.exists()) {
+                            // displayName 로드
+                            Object displayNameObj = documentSnapshot.get("displayName");
+                            if (displayNameObj != null) {
+                                String displayName = displayNameObj.toString();
+                                if (!displayName.trim().isEmpty()) {
+                                    textUsername.setText(displayName);
+                                }
+                            }
+
+                            // 프로필 이미지 로드
+                            Object profileImageUrlObj = documentSnapshot.get("profileImageUrl");
+                            if (profileImageUrlObj != null) {
+                                String profileImageUrl = profileImageUrlObj.toString();
+                                if (!profileImageUrl.trim().isEmpty()) {
+                                    loadProfileImage(profileImageUrl);
+                                }
+                            }
+                        } else {
+                            Log.e("MyPageFragment", "User document not found for username: " + username);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        showGlobalLoading(false);
+                        Log.e("MyPageFragment", "Failed to load user info", e);
+                    });
+        }
+    }
+
+    private void loadProfileImage(String imageUrl) {
+        if (imageUrl != null && !imageUrl.isEmpty() && isAdded()) {
+            Glide.with(this)
+                    .load(imageUrl)
+                    .placeholder(R.drawable.baseline_person_24)
+                    .circleCrop()
+                    .into(imageProfile);
+        }
+    }
+
+    private void openImagePicker() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_PICK);
+            intent.setType("image/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivityForResult(intent, PICK_IMAGE_REQUEST);
+        } catch (Exception e) {
+            Log.e("MyPageFragment", "Error opening image picker", e);
+            Toast.makeText(getContext(), "이미지 선택기를 열 수 없습니다.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null) {
+            Uri imageUri = data.getData();
+            if (imageUri != null) {
+                uploadImageToFirebase(imageUri);
+            }
+        }
+    }
+
+    private void uploadImageToFirebase(Uri imageUri) {
+        if (username == null || username.isEmpty()) {
+            Toast.makeText(getContext(), "사용자 정보가 없습니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         showGlobalLoading(true);
 
-        firestoreHelper.getUserDataByUsername(username, new FirestoreHelper.UserDataCallback() {
-            @Override
-            public void onUserDataReceived(java.util.Map<String, Object> data) {
-                showGlobalLoading(false);
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            showGlobalLoading(false);
+            Toast.makeText(getContext(), "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-                Object displayNameObj = data.get("displayName");
-                if (displayNameObj != null) {
-                    String displayName = displayNameObj.toString();
-                    if (!displayName.trim().isEmpty()) {
-                        textUsername.setText(displayName);
-                    }
-                }
-            }
+        String uid = currentUser.getUid();
 
-            @Override
-            public void onUserDataNotFound() {
-                showGlobalLoading(false);
-            }
+        // Firebase Storage 참조 생성 (UID 사용 - 고유해야 하니까)
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        StorageReference storageRef = storage.getReference();
+        StorageReference profileImageRef = storageRef.child("profile_images/" + uid + ".jpg");
 
-            @Override
-            public void onUserDataFailed(Exception e) {
-                showGlobalLoading(false);
-            }
-        });
+        // 이미지 업로드
+        profileImageRef.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    // 업로드 성공 - 다운로드 URL 가져오기
+                    profileImageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        String downloadUrl = uri.toString();
+                        Log.d("MyPageFragment", "Image uploaded successfully: " + downloadUrl);
+
+                        // Firestore에 URL 저장 (username을 문서 ID로 사용)
+                        saveProfileImageUrlToFirestore(downloadUrl);
+                    }).addOnFailureListener(e -> {
+                        showGlobalLoading(false);
+                        Toast.makeText(getContext(), "다운로드 URL 가져오기 실패", Toast.LENGTH_SHORT).show();
+                        Log.e("MyPageFragment", "Failed to get download URL", e);
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    showGlobalLoading(false);
+                    Toast.makeText(getContext(), "이미지 업로드 실패: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                    Log.e("MyPageFragment", "Failed to upload image", e);
+                });
+    }
+
+    private void saveProfileImageUrlToFirestore(String imageUrl) {
+        // ⭐ username(닉네임)을 문서 ID로 사용
+        Map<String, Object> data = new HashMap<>();
+        data.put("profileImageUrl", imageUrl);
+
+        db.collection("FamilyMember")
+                .document(username)  // username을 문서 ID로 사용!
+                .set(data, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    showGlobalLoading(false);
+                    Toast.makeText(getContext(), "프로필 이미지가 업데이트되었습니다.",
+                            Toast.LENGTH_SHORT).show();
+
+                    // UI 업데이트
+                    loadProfileImage(imageUrl);
+                })
+                .addOnFailureListener(e -> {
+                    showGlobalLoading(false);
+                    Toast.makeText(getContext(), "이미지 저장 실패: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                    Log.e("MyPageFragment", "Failed to save image URL to Firestore", e);
+                });
     }
 
     private void showEditNicknameDialog() {
@@ -169,20 +298,22 @@ public class MyPageFragment extends Fragment {
     private void updateNickname(String newName) {
         showGlobalLoading(true);
 
-        firestoreHelper.updateDisplayName(username, newName, new FirestoreHelper.StatusCallback() {
-            @Override
-            public void onStatusUpdated() {
-                showGlobalLoading(false);
-                textUsername.setText(newName);
-                Toast.makeText(requireContext(), "닉네임이 변경되었습니다.", Toast.LENGTH_SHORT).show();
-            }
+        Map<String, Object> data = new HashMap<>();
+        data.put("displayName", newName);
 
-            @Override
-            public void onStatusUpdateFailed(Exception e) {
-                showGlobalLoading(false);
-                Toast.makeText(requireContext(), "닉네임 변경에 실패했습니다.", Toast.LENGTH_SHORT).show();
-            }
-        });
+        db.collection("FamilyMember")
+                .document(username)  // username을 문서 ID로 사용!
+                .set(data, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    showGlobalLoading(false);
+                    textUsername.setText(newName);
+                    Toast.makeText(requireContext(), "닉네임이 변경되었습니다.", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    showGlobalLoading(false);
+                    Toast.makeText(requireContext(), "닉네임 변경에 실패했습니다.", Toast.LENGTH_SHORT).show();
+                    Log.e("MyPageFragment", "Failed to update nickname", e);
+                });
     }
 
     private void initDarkModeToggle() {
