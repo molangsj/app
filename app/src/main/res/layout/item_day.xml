@@ -19,6 +19,6 @@
         android:layout_width="16dp"
         android:layout_height="16dp"
         android:layout_gravity="end|bottom"
-        android:src="@drawable/ic_notification"
+        android:src="@drawable/pill_default"
     android:visibility="gone"/>
 </FrameLayout>
