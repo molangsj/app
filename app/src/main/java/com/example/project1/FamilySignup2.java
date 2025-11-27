@@ -77,6 +77,7 @@ public class FamilySignup2 extends Fragment {
                             .commit();
                 }
 
+
                 @Override
                 public void onAuthFailed(Exception e) {
                     btnSignUp.setEnabled(true);
@@ -89,6 +90,13 @@ public class FamilySignup2 extends Fragment {
             });
         });
 
+        btnGoToLogin.setOnClickListener(v -> {
+            getParentFragmentManager().beginTransaction()
+                    .replace(R.id.test_fragment_container, new FamilyLogin2())
+                    .addToBackStack(null)
+                    .commit();
+        });
+
 
         btnGoToLogin.setOnClickListener(v -> {
             getParentFragmentManager().beginTransaction()
@@ -99,6 +107,7 @@ public class FamilySignup2 extends Fragment {
 
         return view;
     }
+
 
     private boolean validateInput(String email, String password, String confirmPassword) {
         if (email.isEmpty()) {

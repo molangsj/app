@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -35,7 +36,7 @@ public class FamilyLogin2 extends Fragment implements AuthHelper.GoogleSignInCal
 
     private EditText etEmail, etPassword;
     private Button btnLogin, btnGoToSignUp;
-    private SignInButton btnGoogleSignIn;
+    private ImageButton btnGoogleSignIn;
     private AuthHelper authHelper;
     private OnLoginSuccessListener listener;
 
@@ -80,7 +81,6 @@ public class FamilyLogin2 extends Fragment implements AuthHelper.GoogleSignInCal
             authHelper.login(email, password, this);
         });
 
-        btnGoogleSignIn.setSize(SignInButton.SIZE_WIDE);
         btnGoogleSignIn.setOnClickListener(v -> {
             Activity activity = getActivity();
             if (activity != null) {
@@ -190,7 +190,7 @@ public class FamilyLogin2 extends Fragment implements AuthHelper.GoogleSignInCal
         if (e instanceof FirebaseAuthInvalidUserException) {
             Toast.makeText(getActivity(), "해당 계정이 없습니다. 회원가입 화면으로 이동합니다.", Toast.LENGTH_SHORT).show();
             getParentFragmentManager().beginTransaction()
-                    .replace(R.id.test_fragment_container, new FamilySignup())
+                    .replace(R.id.test_fragment_container, new FamilySignup2())
                     .addToBackStack(null)
                     .commit();
         } else {
