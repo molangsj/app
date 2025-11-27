@@ -47,4 +47,12 @@
         libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
+
+    <string-array name="font_options">
+        <item>기본 폰트</item>
+        <item>바탕체</item>
+        <item>한컴 미래펀</item>
+        <item>한컴 흐림</item>
+    </string-array>
+
 </resources>

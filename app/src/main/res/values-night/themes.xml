@@ -3,5 +3,9 @@
     <style name="Base.Theme.Project1" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+
+        <!-- 폰트 적용 -->
+        <item name="android:fontFamily">@font/hmfmpyum_family</item>
+        <item name="fontFamily">@font/hmfmpyum_family</item>
     </style>
 </resources>

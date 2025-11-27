@@ -5,5 +5,9 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
+
+        <!-- 폰트 적용 -->
+        <item name="android:fontFamily">@font/hmfmpyum_family</item>
+        <item name="fontFamily">@font/hmfmpyum_family</item>
     </style>
 </resources>
