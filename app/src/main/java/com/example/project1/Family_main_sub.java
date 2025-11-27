@@ -486,6 +486,15 @@ public class Family_main_sub extends Fragment {
                 });
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // 이 프래그먼트 떠날 때는 무조건 로딩 끄기
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(false);
+        }
+    }
+
 
     private void checkPillStatusAndUpdateUI(View itemView, String latestDate) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();

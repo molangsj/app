@@ -230,4 +230,14 @@ public class CalendarFragment extends Fragment {
     private void showErrorMessage() {
         Toast.makeText(getContext(), "약 정보를 불러오는데 실패했습니다.", Toast.LENGTH_SHORT).show();
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // 이 프래그먼트 떠날 때는 무조건 로딩 끄기
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(false);
+        }
+    }
+
 }

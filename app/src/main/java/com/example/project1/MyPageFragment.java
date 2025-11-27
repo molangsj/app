@@ -140,6 +140,16 @@ public class MyPageFragment extends Fragment {
         });
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // 이 프래그먼트 떠날 때는 무조건 로딩 끄기
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(false);
+        }
+    }
+
+
     private void showEditNicknameDialog() {
         if (username == null || username.isEmpty()) {
             Toast.makeText(requireContext(), "사용자 정보가 없습니다.", Toast.LENGTH_SHORT).show();
