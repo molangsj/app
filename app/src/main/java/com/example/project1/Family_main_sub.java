@@ -218,9 +218,6 @@ public class Family_main_sub extends Fragment {
         adapter.notifyDataSetChanged();
     }
 
-
-
-
     // ---------------------------
     // 닉네임 입력 다이얼로그
     // ---------------------------
@@ -439,7 +436,7 @@ public class Family_main_sub extends Fragment {
 
         familySendImageView.setOnClickListener(v -> {
             sendNotification(uid2, messageText);
-            Toast.makeText(getContext(), "Family Send clicked", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "복약 알림을 보냈습니다.", Toast.LENGTH_SHORT).show();
         });
 
         if (drugInfo.getVisibility() == View.GONE) {
@@ -487,6 +484,15 @@ public class Family_main_sub extends Fragment {
                 .addOnFailureListener(e -> {
                     Log.e("Firestore", "Failed to fetch Member document", e);
                 });
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // 이 프래그먼트 떠날 때는 무조건 로딩 끄기
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(false);
+        }
     }
 
 

@@ -156,12 +156,25 @@ public class MedicineList extends Fragment implements
             return;
         }
 
-        ((MainActivity) requireActivity()).showLoading(true);
+        // 로딩 시작 (액티비티가 MainActivity일 때만)
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(true);
+        }
 
         firestoreHelper.getCurrentMedications(username, new FirestoreHelper.MedicationListCallback() {
             @Override
             public void onMedicationListReceived(List<MedicineData> medications) {
-                ((MainActivity) requireActivity()).showLoading(false);
+
+                // 로딩 끄기 (콜백이 왔으면 무조건 한 번 false)
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).showLoading(false);
+                }
+
+                // 프래그먼트가 이미 날아갔으면 UI 건드리지 말고 종료
+                if (!isAdded() || binding == null) {
+                    return;
+                }
+
                 Log.d("MedicineListFragment", "Current medications received: " + medications.size());
                 for (MedicineData medicine : medications) {
                     Log.d("MedicineListFragment", "Medicine: " + medicine.getPillName());
@@ -178,7 +191,17 @@ public class MedicineList extends Fragment implements
 
             @Override
             public void onMedicationListFailed(Exception e) {
-                ((MainActivity) requireActivity()).showLoading(false);
+
+                // 로딩 끄기
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).showLoading(false);
+                }
+
+                // 프래그먼트가 이미 날아갔으면 UI 건드리지 말고 종료
+                if (!isAdded() || binding == null) {
+                    return;
+                }
+
                 Log.e("MedicineListFragment", "Error getting current medications: ", e);
                 binding.medicineRecyclerView.setVisibility(View.GONE);
                 binding.emptyTextView.setVisibility(View.VISIBLE);
@@ -186,6 +209,7 @@ public class MedicineList extends Fragment implements
             }
         });
     }
+
 
 
     private void updateUI() {
@@ -467,4 +491,14 @@ public class MedicineList extends Fragment implements
             Log.e("MedicineListFragment", "Error canceling alarm", e);
         }
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        // 이 프래그먼트 떠날 때는 무조건 로딩 끄기
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(false);
+        }
+    }
+
 }
