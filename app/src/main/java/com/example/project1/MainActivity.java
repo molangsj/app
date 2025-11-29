@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements
 
         switch (selectedFont) {
             case 0: // 기본 폰트
-                setTheme(R.style.Theme_Project1);
+                setTheme(R.style.Theme_Project1_Paperlogy);
                 break;
             case 1: // 바탕체
                 setTheme(R.style.Theme_Project1_Batang);

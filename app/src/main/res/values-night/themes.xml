@@ -1,9 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme (다크 모드) -->
     <style name="Base.Theme.Project1" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
-
-        <!-- ❌ 폰트 설정 삭제 - 동적으로 적용할 거니까 -->
+        <item name="android:fontFamily">@font/paperlogy_4regular</item>
+        <item name="fontFamily">@font/paperlogy_4regular</item>
     </style>
 </resources>

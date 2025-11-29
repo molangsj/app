@@ -4,7 +4,5 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
-
-        <!-- ❌ 폰트 설정 삭제 - 동적으로 적용할 거니까 -->
     </style>
 </resources>

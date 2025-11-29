@@ -5,8 +5,7 @@
     android:layout_height="match_parent"
     android:padding="24dp"
     android:gravity="center"
-    android:orientation="vertical"
-    android:background="@color/white">
+    android:orientation="vertical">
 
     <!-- 제목 -->
     <TextView

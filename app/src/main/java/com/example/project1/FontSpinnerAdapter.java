@@ -52,7 +52,7 @@ public class FontSpinnerAdapter extends ArrayAdapter<String> {
     private Typeface getFontTypeface(int position) {
         switch (position) {
             case 0: // 기본 폰트
-                return Typeface.DEFAULT;
+                return ResourcesCompat.getFont(context, R.font.paperlogy_4regular);
             case 1: // 바탕체
                 return ResourcesCompat.getFont(context, R.font.batang);
             case 2: // 한컴 미래펀

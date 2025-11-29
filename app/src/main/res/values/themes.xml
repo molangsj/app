@@ -8,11 +8,17 @@
         <item name="colorSecondaryVariant">@color/colorSecondary</item>
         <item name="colorOnSecondary">@color/black</item>
         <item name="colorButtonNormal">#C4A8A8</item>
+
+        <item name="android:fontFamily">@font/paperlogy_4regular</item>
+        <item name="fontFamily">@font/paperlogy_4regular</item>
     </style>
 
-    <!-- 기본 폰트 테마 (시스템 기본) -->
-    <style name="Theme.Project1" parent="Base.Theme.Project1">
-        <!-- 폰트 설정 없음 = 시스템 기본 폰트 -->
+    <!-- 기본 테마는 그냥 Base 상속만 -->
+    <style name="Theme.Project1" parent="Base.Theme.Project1" />
+
+    <style name="Theme.Project1.Paperlogy" parent="Base.Theme.Project1">
+        <item name="android:fontFamily">@font/paperlogy_4regular</item>
+        <item name="fontFamily">@font/paperlogy_4regular</item>
     </style>
 
     <!-- 바탕체 테마 -->

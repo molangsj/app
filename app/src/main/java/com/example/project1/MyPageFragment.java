@@ -11,8 +11,10 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,6 +47,7 @@ public class MyPageFragment extends Fragment {
 
     private String username;
     private String email;
+
 
     private TextView textUsername;
     private TextView textEmail;
@@ -214,15 +217,37 @@ public class MyPageFragment extends Fragment {
                 });
     }
 
-    private void loadProfileImage(String imageUrl) {
-        if (imageUrl != null && !imageUrl.isEmpty() && isAdded()) {
+    private void loadProfileImage(@Nullable String imageUrl) {
+        if (!isAdded()) return;
+
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            imageProfile.setBackground(null);
+            imageProfile.setPadding(0, 0, 0, 0);
+            imageProfile.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
             Glide.with(this)
                     .load(imageUrl)
                     .placeholder(R.drawable.baseline_person_24)
+                    .error(R.drawable.baseline_person_24)
                     .circleCrop()
                     .into(imageProfile);
+        } else {
+            imageProfile.setBackground(
+                    ContextCompat.getDrawable(requireContext(), R.drawable.bg_profile_circle)
+            );
+            imageProfile.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            imageProfile.setImageResource(R.drawable.baseline_person_24);
+
+            // dp 8을 px로 변환해서 패딩 다시 줌
+            int padding = (int) TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    8,
+                    getResources().getDisplayMetrics()
+            );
+            imageProfile.setPadding(padding, padding, padding, padding);
         }
     }
+
 
     private void openImagePicker() {
         try {
