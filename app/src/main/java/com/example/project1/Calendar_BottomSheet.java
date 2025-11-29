@@ -36,13 +36,6 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
     private CalendarMedicineAdapter adapter;
     private List<MedicineData> medicineList;
 
-    /**
-     * 새로운 인스턴스를 생성할 때, 선택된 날짜와 가족 멤버 ID만 전달하도록 수정했습니다.
-     *
-     * @param date           선택된 날짜
-     * @param familyMemberId 가족 멤버의 ID
-     * @return Calendar_BottomSheet 인스턴스
-     */
     public static Calendar_BottomSheet newInstance(Date date, String familyMemberId) {
         Calendar_BottomSheet fragment = new Calendar_BottomSheet();
         Bundle args = new Bundle();
@@ -57,7 +50,7 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         binding = FragmentCalendarBottomSheetBinding.inflate(inflater, container, false);
-        firestoreHelper = new FirestoreHelper(); // FirestoreHelper 객체 초기화
+        firestoreHelper = new FirestoreHelper();
 
         if (getArguments() != null) {
             long dateMillis = getArguments().getLong(ARG_DATE);
@@ -66,16 +59,12 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
             loadMedicineInfo();
         }
 
-        return binding.getRoot(); // 올바르게 root view 반환
+        return binding.getRoot();
     }
 
-    /**
-     * Firestore에서 선택된 날짜의 약물 정보를 가져와 RecyclerView에 표시합니다.
-     */
     private void loadMedicineInfo() {
-        // Firestore에서 해당 날짜의 약 정보 가져오기
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
-        String dateStr = sdf.format(selectedDate);  // 날짜 포맷팅 (예: 20241205)
+        String dateStr = sdf.format(selectedDate);
 
         binding.tvSelectedDate.setText("선택된 날짜: " + sdf.format(selectedDate));
 
@@ -85,7 +74,6 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
                 medicineList = medications;
 
                 if (medications.isEmpty()) {
-                    // RecyclerView가 비어있을 때 표시할 메시지
                     binding.medicineRecyclerView.setVisibility(View.GONE);
                     binding.tvNoMedicine.setVisibility(View.VISIBLE);
                     binding.tvNoMedicine.setText("오늘은 복용할 약이 없습니다!");
@@ -95,21 +83,14 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
                     binding.tvNoMedicine.setVisibility(View.GONE);
                 }
 
-                // RecyclerView 설정
                 adapter = new CalendarMedicineAdapter(getContext(), medications, Calendar_BottomSheet.this);
                 binding.medicineRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
                 binding.medicineRecyclerView.setAdapter(adapter);
             }
 
-//            @Override
-//            public void onMedicationListReceived(List<MedicineData> medications) {
-//
-//            }
-
             @Override
             public void onMedicationListFailed(Exception e) {
                 Log.e("Calendar_BottomSheet", "Error getting medications: ", e);
-                // 오류 메시지 표시
                 binding.medicineRecyclerView.setVisibility(View.GONE);
                 binding.tvNoMedicine.setVisibility(View.VISIBLE);
                 binding.tvNoMedicine.setText("약 정보를 불러오는데 실패했습니다.");
@@ -127,36 +108,77 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
      */
     @Override
     public void onAlarmCheckedChanged(MedicineData medicine, int alarmIndex, int isChecked) {
-        // pillIsChecked 업데이트
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
         String dateStr = sdf.format(selectedDate);
 
         if (medicine.getAlarmTimes() != null && alarmIndex < medicine.getAlarmTimes().size()) {
-            String alarmTime = medicine.getAlarmTimes().get(alarmIndex); // MedicineData에 alarmTimes 리스트가 있다고 가정
 
+            // ① 기존: 개별 알람 인덱스별 pillIsCheckedN 업데이트
             firestoreHelper.updatePillIsCheckedAt(
                     familyMemberId,
                     dateStr,
                     medicine.getPillName(),
-                    alarmIndex, // alarmIndex를 전달
+                    alarmIndex,
                     isChecked,
                     new FirestoreHelper.StatusCallback() {
                         @Override
                         public void onStatusUpdated() {
-                            Toast.makeText(getContext(), "복약 여부가 업데이트되었습니다.", Toast.LENGTH_SHORT).show();
-                            Log.d("Calendar_BottomSheet", "pillIsChecked updated for: " + medicine.getPillName() + " at alarmIndex: " + alarmIndex + " with isChecked: " + isChecked);
+                            Log.d("Calendar_BottomSheet", "pillIsCheckedAt updated: "
+                                    + medicine.getPillName()
+                                    + " index=" + alarmIndex
+                                    + " value=" + isChecked);
+
+                            // ② 추가: 전체 pillIsChecked(요약 필드)도 동시에 업데이트
+                            firestoreHelper.updatePillIsCheckedOverall(
+                                    familyMemberId,
+                                    dateStr,
+                                    medicine.getPillName(),
+                                    isChecked,
+                                    new FirestoreHelper.StatusCallback() {
+                                        @Override
+                                        public void onStatusUpdated() {
+                                            Toast.makeText(
+                                                    getContext(),
+                                                    "복약 여부가 업데이트되었습니다.",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
+                                            Log.d("Calendar_BottomSheet",
+                                                    "pillIsCheckedOverall updated: "
+                                                            + medicine.getPillName()
+                                                            + " = " + isChecked);
+                                        }
+
+                                        @Override
+                                        public void onStatusUpdateFailed(Exception e) {
+                                            Toast.makeText(
+                                                    getContext(),
+                                                    "복약 여부(요약) 업데이트에 실패했습니다.",
+                                                    Toast.LENGTH_SHORT
+                                            ).show();
+                                            Log.e("Calendar_BottomSheet",
+                                                    "Failed to update pillIsCheckedOverall", e);
+                                        }
+                                    }
+                            );
                         }
 
                         @Override
                         public void onStatusUpdateFailed(Exception e) {
-                            Toast.makeText(getContext(), "복약 여부 업데이트에 실패했습니다.", Toast.LENGTH_SHORT).show();
-                            Log.e("Calendar_BottomSheet", "Failed to update pillIsChecked", e);
+                            Toast.makeText(getContext(),
+                                    "복약 여부 업데이트에 실패했습니다.",
+                                    Toast.LENGTH_SHORT).show();
+                            Log.e("Calendar_BottomSheet",
+                                    "Failed to update pillIsCheckedAt", e);
                         }
                     }
             );
+
         } else {
-            Log.e("Calendar_BottomSheet", "Invalid alarmIndex: " + alarmIndex + " for medicine: " + medicine.getPillName());
-            Toast.makeText(getContext(), "복약 여부 업데이트에 실패했습니다.", Toast.LENGTH_SHORT).show();
+            Log.e("Calendar_BottomSheet", "Invalid alarmIndex: " + alarmIndex
+                    + " for medicine: " + medicine.getPillName());
+            Toast.makeText(getContext(),
+                    "복약 여부 업데이트에 실패했습니다.",
+                    Toast.LENGTH_SHORT).show();
         }
     }
 }

@@ -8,6 +8,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import android.app.Activity;
+import android.content.Context;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -170,11 +173,26 @@ public class FamilyAdapter extends RecyclerView.Adapter<FamilyAdapter.FamilyView
                             return;
                         }
 
+                        // 뷰가 이미 화면에서 떨어졌으면 그만
+                        if (!itemView.isAttachedToWindow()) {
+                            return;
+                        }
+
+                        // 액티비티가 destroy 되어 있으면 Glide 호출하지 않음
+                        Context context = itemView.getContext();
+                        if (context instanceof Activity) {
+                            Activity activity = (Activity) context;
+                            if (activity.isFinishing() || activity.isDestroyed()) {
+                                return;
+                            }
+                        }
+
                         if (documentSnapshot != null && documentSnapshot.exists()) {
                             String profileImageUrl = documentSnapshot.getString("profileImageUrl");
 
                             if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
-                                Glide.with(itemView.getContext())
+                                // View 기반으로 Glide 시작 (액티비티 라이프사이클 묶임)
+                                Glide.with(itemView)
                                         .load(profileImageUrl)
                                         .placeholder(R.drawable.user1)
                                         .circleCrop()
@@ -197,5 +215,6 @@ public class FamilyAdapter extends RecyclerView.Adapter<FamilyAdapter.FamilyView
 
             listenerMap.put(docId, listener);
         }
+
     }
 }

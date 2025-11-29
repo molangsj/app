@@ -23,10 +23,12 @@ import java.util.Map;
 public class FirestoreHelper {
 
     private FirebaseFirestore db;
+    private static final String TAG = "FirestoreHelper";
 
     public FirestoreHelper() {
         db = FirebaseFirestore.getInstance();
     }
+
 
     // 날짜 메타데이터를 FamilyMember 문서에 추가하는 메서드 (username 문서에 필드 추가)
     public void addDateToFamilyMember(
@@ -541,6 +543,7 @@ public class FirestoreHelper {
                 });
     }
 
+
     public void resetPillIsCheckedAt(
             String username,
             String dateStr,
@@ -574,6 +577,74 @@ public class FirestoreHelper {
                     callback.onStatusUpdateFailed(e);
                 });
     }
+
+    // pillIsChecked 요약 필드 + currentMedications 동기화
+    public void updatePillIsCheckedOverall(
+            String username,
+            String dateStr,
+            String pillName,
+            int isChecked,
+            StatusCallback callback
+    ) {
+        if (username == null || username.isEmpty()
+                || dateStr == null || dateStr.isEmpty()
+                || pillName == null || pillName.isEmpty()) {
+            Log.e("FirestoreHelper", "updatePillIsCheckedOverall: invalid arguments");
+            callback.onStatusUpdateFailed(
+                    new IllegalArgumentException("username, dateStr, pillName must not be null or empty")
+            );
+            return;
+        }
+
+        Log.d("FirestoreHelper", "updatePillIsCheckedOverall start: user=" + username
+                + ", dateStr=" + dateStr + ", pillName=" + pillName + ", value=" + isChecked);
+
+        // 1) 날짜별 컬렉션 문서의 pillIsChecked 필드 업데이트
+        DocumentReference pillRef = db.collection("FamilyMember")
+                .document(username)
+                .collection(dateStr)
+                .document(pillName);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("pillIsChecked", isChecked);
+
+        pillRef.update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("FirestoreHelper",
+                            "pillIsChecked updated in date collection: "
+                                    + username + "/" + dateStr + "/" + pillName
+                                    + " = " + isChecked);
+
+                    // 2) currentMedications에도 같은 필드 동기화
+                    DocumentReference currentRef = db.collection("FamilyMember")
+                            .document(username)
+                            .collection("currentMedications")
+                            .document(pillName);
+
+                    currentRef.update(updates)
+                            .addOnSuccessListener(v -> {
+                                Log.d("FirestoreHelper",
+                                        "pillIsChecked synced to currentMedications: "
+                                                + username + "/currentMedications/" + pillName
+                                                + " = " + isChecked);
+                                callback.onStatusUpdated();
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e("FirestoreHelper",
+                                        "Failed to sync pillIsChecked to currentMedications for: "
+                                                + pillName, e);
+                                // date 쪽은 이미 성공했으니, 그래도 성공으로 처리
+                                callback.onStatusUpdated();
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FirestoreHelper",
+                            "Failed to update pillIsChecked in date collection for: "
+                                    + pillName, e);
+                    callback.onStatusUpdateFailed(e);
+                });
+    }
+
 
     // 날짜별 약 리스트 가져오기
     public void getMedicationsForDate(
