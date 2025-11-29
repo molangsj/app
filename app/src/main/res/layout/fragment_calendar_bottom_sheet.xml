@@ -21,7 +21,7 @@
         android:id="@+id/tvNoMedicine"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="오늘은 복용할 약이 없습니다!"
+        android:text="복용할 약이 없습니다!"
         android:textSize="16sp"
         android:visibility="gone"
         android:layout_gravity="center_horizontal"

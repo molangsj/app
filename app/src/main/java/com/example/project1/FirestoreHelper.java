@@ -111,7 +111,6 @@ public class FirestoreHelper {
                 });
     }
 
-    // ✅ 수정된 메서드 - currentMedications도 함께 업데이트
     public void updateMedicineIcon(String username, String dateStr, String pillName, int iconResId, StatusCallback callback) {
         if (username == null || username.isEmpty() || dateStr == null || dateStr.isEmpty() || pillName == null || pillName.isEmpty()) {
             Log.e("FirestoreHelper", "Invalid parameters for updateMedicineIcon");
@@ -646,41 +645,145 @@ public class FirestoreHelper {
     }
 
 
-    // 날짜별 약 리스트 가져오기
+    // 날짜별 약 리스트 가져오기 (캘린더용: 날짜 컬렉션 + currentMedications 병합)
     public void getMedicationsForDate(
             String username,
             String dateStr,
             MedicationListCallback callback
     ) {
-        db.collection("FamilyMember")
-                .document(username)
-                .collection(dateStr)
+        if (username == null || username.isEmpty() ||
+                dateStr == null || dateStr.isEmpty()) {
+            callback.onMedicationListFailed(
+                    new IllegalArgumentException("username, dateStr must not be null or empty")
+            );
+            return;
+        }
+
+        // 오늘 기준 "yyyyMM" (이번 달)
+        java.text.SimpleDateFormat sdfYmd = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault());
+        java.text.SimpleDateFormat sdfYm = new java.text.SimpleDateFormat("yyyyMM", java.util.Locale.getDefault());
+
+        // 임시 변수에 값 계산 후, final 변수에 한 번만 대입
+        boolean allowAutoCreateTemp;
+        try {
+            java.util.Date targetDate = sdfYmd.parse(dateStr);
+            if (targetDate != null) {
+                String targetYm = sdfYm.format(targetDate);
+                String todayYm = sdfYm.format(new java.util.Date());
+                allowAutoCreateTemp = targetYm.equals(todayYm);   // 같은 달이면 true
+            } else {
+                allowAutoCreateTemp = false;
+            }
+        } catch (Exception e) {
+            allowAutoCreateTemp = false;
+        }
+        final boolean allowAutoCreate = allowAutoCreateTemp;
+
+        com.google.firebase.firestore.DocumentReference userRef =
+                db.collection("FamilyMember").document(username);
+
+        // 1) currentMedications 가져오기
+        userRef.collection("currentMedications")
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<MedicineData> medicines = new ArrayList<>();
-                    for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
-                        MedicineData medicine = doc.toObject(MedicineData.class);
-                        if (medicine != null) {
-                            List<String> alarmTimes = medicine.getAlarmTimes();
-                            if (alarmTimes != null) {
-                                for (int i = 0; i < alarmTimes.size() && i < 10; i++) {
-                                    String fieldName = "pillIsChecked" + (i + 1);
-                                    Long isCheckedLong = doc.getLong(fieldName);
-                                    int isChecked = isCheckedLong != null ? isCheckedLong.intValue() : 0;
-                                    medicine.setPillIsCheckedAt(i, isChecked);
-                                }
-                            }
-                            medicines.add(medicine);
+                .addOnSuccessListener(currentSnap -> {
+                    java.util.List<MedicineData> currentList = new java.util.ArrayList<>();
+                    for (DocumentSnapshot doc : currentSnap.getDocuments()) {
+                        MedicineData m = doc.toObject(MedicineData.class);
+                        if (m != null) {
+                            currentList.add(m);
                         }
                     }
-                    Log.d("FirestoreHelper", "Fetched " + medicines.size() + " medicines for dateStr: " + dateStr);
-                    callback.onMedicationListReceived(medicines);
+
+                    // 2) 선택된 날짜 컬렉션 가져오기
+                    userRef.collection(dateStr)
+                            .get()
+                            .addOnSuccessListener(dailySnap -> {
+                                java.util.Map<String, MedicineData> resultMap =
+                                        new java.util.LinkedHashMap<>();
+
+                                // (A) 날짜 컬렉션에 이미 있는 약들
+                                for (DocumentSnapshot doc : dailySnap.getDocuments()) {
+                                    MedicineData medicine = doc.toObject(MedicineData.class);
+                                    if (medicine == null) continue;
+
+                                    java.util.List<String> alarmTimes = medicine.getAlarmTimes();
+                                    if (alarmTimes != null) {
+                                        for (int i = 0; i < alarmTimes.size() && i < 10; i++) {
+                                            String fieldName = "pillIsChecked" + (i + 1);
+                                            Long isCheckedLong = doc.getLong(fieldName);
+                                            int isChecked = isCheckedLong != null ? isCheckedLong.intValue() : 0;
+                                            medicine.setPillIsCheckedAt(i, isChecked);
+                                        }
+                                    }
+                                    medicine.setDateStr(dateStr);
+                                    resultMap.put(medicine.getPillName(), medicine);
+                                }
+
+                                // (B) currentMedications에 있는 약들 중,
+                                // 이번 달이고, 날짜 컬렉션에 아직 없는 것만 자동 생성
+                                if (allowAutoCreate) {
+                                    for (MedicineData cur : currentList) {
+                                        if (cur == null || cur.getPillName() == null) continue;
+                                        String pillName = cur.getPillName();
+
+                                        // 이미 날짜 컬렉션에 있으면 건너뜀
+                                        if (resultMap.containsKey(pillName)) continue;
+
+                                        java.util.Map<String, Object> newDaily = new java.util.HashMap<>();
+                                        newDaily.put("pillName", cur.getPillName());
+                                        newDaily.put("pillType", cur.getPillType());
+                                        newDaily.put("alarmEnabled", cur.isAlarmEnabled());
+                                        newDaily.put("favorite", cur.isFavorite());
+                                        newDaily.put("alarmTimes", cur.getAlarmTimes());
+                                        newDaily.put("notes", cur.getNotes());
+                                        newDaily.put("daysOfWeek", cur.getDaysOfWeek());
+                                        newDaily.put("dateStr", dateStr);
+
+                                        java.util.List<String> alarmTimes = cur.getAlarmTimes();
+                                        if (alarmTimes != null) {
+                                            for (int i = 0; i < alarmTimes.size() && i < 10; i++) {
+                                                String fieldName = "pillIsChecked" + (i + 1);
+                                                newDaily.put(fieldName, 0);
+                                            }
+                                        }
+                                        newDaily.put("pillIsChecked", 0);
+
+                                        userRef.collection(dateStr)
+                                                .document(pillName)
+                                                .set(newDaily);
+
+                                        // 화면에 보여줄 객체
+                                        MedicineData copy = new MedicineData();
+                                        copy.setPillName(cur.getPillName());
+                                        copy.setPillType(cur.getPillType());
+                                        copy.setAlarmEnabled(cur.isAlarmEnabled());
+                                        copy.setFavorite(cur.isFavorite());
+                                        copy.setAlarmTimes(cur.getAlarmTimes());
+                                        copy.setNotes(cur.getNotes());
+                                        copy.setDaysOfWeek(cur.getDaysOfWeek());
+                                        copy.setDateStr(dateStr);
+
+                                        if (alarmTimes != null) {
+                                            for (int i = 0; i < alarmTimes.size() && i < 10; i++) {
+                                                copy.setPillIsCheckedAt(i, 0);
+                                            }
+                                        }
+
+                                        resultMap.put(copy.getPillName(), copy);
+                                    }
+                                }
+
+                                java.util.List<MedicineData> resultList =
+                                        new java.util.ArrayList<>(resultMap.values());
+                                callback.onMedicationListReceived(resultList);
+                            })
+                            .addOnFailureListener(e -> callback.onMedicationListFailed(e));
+
                 })
-                .addOnFailureListener(e -> {
-                    Log.e("FirestoreHelper", "Failed to get medications for date: " + dateStr, e);
-                    callback.onMedicationListFailed(e);
-                });
+                .addOnFailureListener(callback::onMedicationListFailed);
     }
+
+
 
     // 약 수정
     public void updateMedicineFields(
@@ -821,6 +924,104 @@ public class FirestoreHelper {
             callback.onStatusUpdateFailed(e);
         });
     }
+
+    public interface DateTakenCallback {
+        void onDateHasTaken(boolean hasTaken);
+        void onDateCheckFailed(Exception e);
+    }
+
+    // 특정 날짜에 '먹은 약이 하나라도 있는지' 확인
+    public void hasTakenMedicineForDate(
+            String username,
+            String dateStr,
+            DateTakenCallback callback
+    ) {
+        if (username == null || username.isEmpty()
+                || dateStr == null || dateStr.isEmpty()) {
+            callback.onDateCheckFailed(
+                    new IllegalArgumentException("username, dateStr must not be null or empty")
+            );
+            return;
+        }
+
+        // pillIsChecked == 1 인 문서가 하나라도 있으면 그 날은 '먹은 날'
+        db.collection("FamilyMember")
+                .document(username)
+                .collection(dateStr)
+                .whereEqualTo("pillIsChecked", 1)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(snap -> {
+                    boolean hasTaken = !snap.isEmpty();
+                    Log.d("FirestoreHelper", "hasTakenMedicineForDate " + dateStr + " = " + hasTaken);
+                    callback.onDateHasTaken(hasTaken);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("FirestoreHelper", "hasTakenMedicineForDate failed: " + dateStr, e);
+                    callback.onDateCheckFailed(e);
+                });
+    }
+
+    public interface DatesListCallback {
+        void onDatesReceived(List<String> dateStrList); // yyyyMMdd 리스트
+        void onDatesFailed(Exception e);
+    }
+
+    // 특정 연/월에 '먹은 날'만 모아서 돌려주는 메서드
+    public void getTakenDatesForMonth(
+            String username,
+            int year,      // 2025
+            int month,     // 1~12
+            DatesListCallback callback
+    ) {
+        if (username == null || username.isEmpty()) {
+            callback.onDatesFailed(
+                    new IllegalArgumentException("username must not be null or empty")
+            );
+            return;
+        }
+
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(year, month - 1, 1, 0, 0, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+
+        int daysInMonth = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH);
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault());
+        java.util.List<String> result = new java.util.ArrayList<>();
+        java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger(0);
+        int total = daysInMonth;
+
+        for (int day = 1; day <= daysInMonth; day++) {
+            cal.set(java.util.Calendar.DAY_OF_MONTH, day);
+            String dateStr = sdf.format(cal.getTime());
+
+            db.collection("FamilyMember")
+                    .document(username)
+                    .collection(dateStr)
+                    .whereEqualTo("pillIsChecked", 1)
+                    .limit(1)
+                    .get()
+                    .addOnSuccessListener(snap -> {
+                        if (!snap.isEmpty()) {
+                            result.add(dateStr);  // 이 날은 '먹은 날'
+                        }
+                        if (counter.incrementAndGet() == total) {
+                            callback.onDatesReceived(result);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("FirestoreHelper", "getTakenDatesForMonth failed on " + dateStr, e);
+                        if (counter.incrementAndGet() == total) {
+                            // 일부 실패해도 일단 모아진 것만 넘김
+                            callback.onDatesReceived(result);
+                        }
+                    });
+        }
+    }
+
+
+
 
     // Username 유효성 검사
     private boolean isValidUsername(String username) {

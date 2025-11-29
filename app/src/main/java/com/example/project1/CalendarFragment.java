@@ -24,7 +24,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class CalendarFragment extends Fragment {
+public class CalendarFragment extends Fragment
+        implements Calendar_BottomSheet.OnDateTakenChangedListener {
 
     private FragmentCalendarBinding binding;
     private Calendar_Adapter calendarAdapter;
@@ -90,31 +91,76 @@ public class CalendarFragment extends Fragment {
             if (date != null) {
                 String dateStr = new SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(date);
 
-                // 날짜 클릭 시 로딩 시작
                 showGlobalLoading(true);
 
-                firestoreHelper.getMedicationsForDate(familyMemberId, dateStr, new FirestoreHelper.MedicationListCallback() {
-                    @Override
-                    public void onMedicationListReceived(List<MedicineData> medications) {
-                        showGlobalLoading(false);
+                firestoreHelper.getMedicationsForDate(familyMemberId, dateStr,
+                        new FirestoreHelper.MedicationListCallback() {
+                            @Override
+                            public void onMedicationListReceived(List<MedicineData> medications) {
+                                showGlobalLoading(false);
 
-                        if (medications.isEmpty()) {
-                            showNoMedicineMessage();
-                        } else {
-                            Calendar_BottomSheet bottomSheetFragment = Calendar_BottomSheet.newInstance(date, familyMemberId);
-                            bottomSheetFragment.show(getParentFragmentManager(), "BottomSheet");
-                        }
-                    }
+                                if (medications.isEmpty()) {
+                                    showNoMedicineMessage();
+                                } else {
+                                    Calendar_BottomSheet bottomSheetFragment =
+                                            Calendar_BottomSheet.newInstance(date, familyMemberId);
 
-                    @Override
-                    public void onMedicationListFailed(Exception e) {
-                        showGlobalLoading(false);
-                        Log.e("CalendarFragment", "Error getting medications: ", e);
-                        showErrorMessage();
-                    }
-                });
+                                    // 콜백 연결
+                                    bottomSheetFragment.setOnDateTakenChangedListener(CalendarFragment.this);
+
+                                    bottomSheetFragment.show(
+                                            getParentFragmentManager(),
+                                            "BottomSheet"
+                                    );
+                                }
+                            }
+
+                            @Override
+                            public void onMedicationListFailed(Exception e) {
+                                showGlobalLoading(false);
+                                Log.e("CalendarFragment", "Error getting medications: ", e);
+                                showErrorMessage();
+                            }
+                        });
             }
         });
+
+    }
+
+    @Override
+    public void onDateTakenChanged(Date date, boolean hasTaken) {
+        if (date == null) return;
+
+        // 현재 보고 있는 달이 아니면 굳이 갱신 안 해도 됨
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        if (cal.get(Calendar.YEAR) != currentCalendar.get(Calendar.YEAR) ||
+                cal.get(Calendar.MONTH) != currentCalendar.get(Calendar.MONTH)) {
+            return;
+        }
+
+        if (medicineDates == null) {
+            medicineDates = new ArrayList<>();
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
+        String target = sdf.format(date);
+
+        // 같은 날짜 기존 항목 제거
+        for (int i = medicineDates.size() - 1; i >= 0; i--) {
+            Date d = medicineDates.get(i);
+            if (d != null && sdf.format(d).equals(target)) {
+                medicineDates.remove(i);
+            }
+        }
+
+        // hasTaken == true 이면 다시 추가 (아이콘 표시)
+        if (hasTaken) {
+            medicineDates.add(date);
+        }
+
+        // 어댑터에 반영
+        calendarAdapter.setMedicineDates(medicineDates);
     }
 
     private void setupMonthNavigation() {
@@ -174,57 +220,64 @@ public class CalendarFragment extends Fragment {
     }
 
     private void fetchMedicineDates() {
-        medicineDates = new ArrayList<>();
+        // 현재 캘린더에서 연/월 가져오기
+        int year = currentCalendar.get(Calendar.YEAR);
+        int month = currentCalendar.get(Calendar.MONTH) + 1; // Calendar.MONTH는 0~11
 
-        List<Date> currentMonthDays = generateDays();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
-
-        pendingMedicineRequests = 0;
-        for (Date date : currentMonthDays) {
-            if (date != null) {
-                pendingMedicineRequests++;
-            }
-        }
-
-        if (pendingMedicineRequests == 0) {
-            return;
-        }
-
-        // 한 달치 로딩 시작
+        // 이번 달 기준으로 '먹은 날'만 가져옴
         showGlobalLoading(true);
 
-        for (Date date : currentMonthDays) {
-            if (date == null) continue;
-            String dateStr = sdf.format(date);
+        firestoreHelper.getTakenDatesForMonth(
+                familyMemberId,
+                year,
+                month,
+                new FirestoreHelper.DatesListCallback() {
+                    @Override
+                    public void onDatesReceived(List<String> dateStrList) {
+                        showGlobalLoading(false);
 
-            firestoreHelper.getMedicationsForDate(familyMemberId, dateStr, new FirestoreHelper.MedicationListCallback() {
-                @Override
-                public void onMedicationListReceived(List<MedicineData> medications) {
-                    if (!medications.isEmpty() && !medicineDates.contains(date)) {
-                        medicineDates.add(date);
+                        if (dateStrList == null) {
+                            dateStrList = new ArrayList<>();
+                        }
+
+                        SimpleDateFormat sdf =
+                                new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
+                        List<Date> takenDateList = new ArrayList<>();
+
+                        for (String ds : dateStrList) {
+                            try {
+                                Date d = sdf.parse(ds);
+                                if (d != null) {
+                                    takenDateList.add(d);
+                                }
+                            } catch (Exception e) {
+                                Log.e("CalendarFragment", "날짜 파싱 실패: " + ds, e);
+                            }
+                        }
+
+                        // '먹은 날'만 아이콘 표시용 리스트로 사용
+                        medicineDates = takenDateList;
                         calendarAdapter.setMedicineDates(medicineDates);
                     }
-                    onOneMedicineRequestFinished();
-                }
 
-                @Override
-                public void onMedicationListFailed(Exception e) {
-                    Log.e("CalendarFragment", "Error fetching medications for date: " + dateStr, e);
-                    onOneMedicineRequestFinished();
+                    @Override
+                    public void onDatesFailed(Exception e) {
+                        showGlobalLoading(false);
+                        Log.e("CalendarFragment",
+                                "getTakenDatesForMonth 실패: " + e.getMessage(), e);
+                        // 실패해도 화면 자체는 보여줘야 하니 토스트 정도만
+                        Toast.makeText(
+                                getContext(),
+                                "복용한 날짜를 불러오지 못했습니다.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+                    }
                 }
-            });
-        }
-    }
-
-    private void onOneMedicineRequestFinished() {
-        pendingMedicineRequests--;
-        if (pendingMedicineRequests <= 0) {
-            showGlobalLoading(false);
-        }
+        );
     }
 
     private void showNoMedicineMessage() {
-        Toast.makeText(getContext(), "오늘은 복용할 약이 없습니다!", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getContext(), "복용할 약이 없습니다!", Toast.LENGTH_SHORT).show();
     }
 
     private void showErrorMessage() {

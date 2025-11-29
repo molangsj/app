@@ -27,6 +27,16 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
     private static final String ARG_DATE = "selected_date";
     private static final String ARG_FAMILY_MEMBER_ID = "family_member_id";
 
+    public interface OnDateTakenChangedListener {
+        void onDateTakenChanged(Date date, boolean hasTaken);
+    }
+
+    private OnDateTakenChangedListener dateTakenChangedListener;
+
+    public void setOnDateTakenChangedListener(OnDateTakenChangedListener listener) {
+        this.dateTakenChangedListener = listener;
+    }
+
     private FragmentCalendarBottomSheetBinding binding;
     private Date selectedDate;
     private String familyMemberId;
@@ -76,7 +86,7 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
                 if (medications.isEmpty()) {
                     binding.medicineRecyclerView.setVisibility(View.GONE);
                     binding.tvNoMedicine.setVisibility(View.VISIBLE);
-                    binding.tvNoMedicine.setText("오늘은 복용할 약이 없습니다!");
+                    binding.tvNoMedicine.setText("복용할 약이 없습니다!");
                     binding.tvNoMedicine.setTextColor(Color.BLACK);
                 } else {
                     binding.medicineRecyclerView.setVisibility(View.VISIBLE);
@@ -113,7 +123,9 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
 
         if (medicine.getAlarmTimes() != null && alarmIndex < medicine.getAlarmTimes().size()) {
 
-            // ① 기존: 개별 알람 인덱스별 pillIsCheckedN 업데이트
+            // 1) 로컬 모델에 반영
+            medicine.setPillIsCheckedAt(alarmIndex, isChecked);
+
             firestoreHelper.updatePillIsCheckedAt(
                     familyMemberId,
                     dateStr,
@@ -123,40 +135,71 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
                     new FirestoreHelper.StatusCallback() {
                         @Override
                         public void onStatusUpdated() {
-                            Log.d("Calendar_BottomSheet", "pillIsCheckedAt updated: "
-                                    + medicine.getPillName()
-                                    + " index=" + alarmIndex
-                                    + " value=" + isChecked);
+                            // 2) 이 약에 대해 전체 pillIsChecked(요약) 계산
+                            boolean anyCheckedForThisMedicine = false;
+                            List<String> alarms = medicine.getAlarmTimes();
+                            if (alarms != null) {
+                                for (int i = 0; i < alarms.size(); i++) {
+                                    if (medicine.getPillIsCheckedAt(i) == 1) {
+                                        anyCheckedForThisMedicine = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            int overall = anyCheckedForThisMedicine ? 1 : 0;
 
-                            // ② 추가: 전체 pillIsChecked(요약 필드)도 동시에 업데이트
+                            // 날짜 컬렉션 + currentMedications 둘 다 pillIsChecked 동기화
                             firestoreHelper.updatePillIsCheckedOverall(
                                     familyMemberId,
                                     dateStr,
                                     medicine.getPillName(),
-                                    isChecked,
+                                    overall,
                                     new FirestoreHelper.StatusCallback() {
                                         @Override
                                         public void onStatusUpdated() {
+
+                                            // 3) 이 날짜에 '먹은 약이 하나라도 있는지' 계산
+                                            boolean anyCheckedForDate = false;
+                                            outer:
+                                            for (MedicineData m : medicineList) {
+                                                List<String> a = m.getAlarmTimes();
+                                                if (a == null) continue;
+                                                for (int i = 0; i < a.size(); i++) {
+                                                    if (m.getPillIsCheckedAt(i) == 1) {
+                                                        anyCheckedForDate = true;
+                                                        break outer;
+                                                    }
+                                                }
+                                            }
+
+                                            // 4) 캘린더에 콜백 보내기 (아이콘 갱신용)
+                                            if (dateTakenChangedListener != null) {
+                                                dateTakenChangedListener.onDateTakenChanged(
+                                                        selectedDate,
+                                                        anyCheckedForDate
+                                                );
+                                            }
+
                                             Toast.makeText(
                                                     getContext(),
                                                     "복약 여부가 업데이트되었습니다.",
                                                     Toast.LENGTH_SHORT
                                             ).show();
                                             Log.d("Calendar_BottomSheet",
-                                                    "pillIsCheckedOverall updated: "
+                                                    "pillIsChecked updated for: "
                                                             + medicine.getPillName()
-                                                            + " = " + isChecked);
+                                                            + ", overall=" + overall);
                                         }
 
                                         @Override
                                         public void onStatusUpdateFailed(Exception e) {
+                                            Log.e("Calendar_BottomSheet",
+                                                    "Failed to update overall pillIsChecked", e);
                                             Toast.makeText(
                                                     getContext(),
-                                                    "복약 여부(요약) 업데이트에 실패했습니다.",
+                                                    "복약 여부 업데이트에 실패했습니다.",
                                                     Toast.LENGTH_SHORT
                                             ).show();
-                                            Log.e("Calendar_BottomSheet",
-                                                    "Failed to update pillIsCheckedOverall", e);
                                         }
                                     }
                             );
@@ -164,21 +207,16 @@ public class Calendar_BottomSheet extends BottomSheetDialogFragment
 
                         @Override
                         public void onStatusUpdateFailed(Exception e) {
-                            Toast.makeText(getContext(),
-                                    "복약 여부 업데이트에 실패했습니다.",
-                                    Toast.LENGTH_SHORT).show();
-                            Log.e("Calendar_BottomSheet",
-                                    "Failed to update pillIsCheckedAt", e);
+                            Toast.makeText(getContext(), "복약 여부 업데이트에 실패했습니다.", Toast.LENGTH_SHORT).show();
+                            Log.e("Calendar_BottomSheet", "Failed to update pillIsCheckedAt", e);
                         }
                     }
             );
-
         } else {
             Log.e("Calendar_BottomSheet", "Invalid alarmIndex: " + alarmIndex
                     + " for medicine: " + medicine.getPillName());
-            Toast.makeText(getContext(),
-                    "복약 여부 업데이트에 실패했습니다.",
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "복약 여부 업데이트에 실패했습니다.", Toast.LENGTH_SHORT).show();
         }
     }
+
 }

@@ -12,12 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.text.SimpleDateFormat;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.Date;
 
 public class CalendarMedicineAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -27,38 +22,22 @@ public class CalendarMedicineAdapter extends RecyclerView.Adapter<RecyclerView.V
     private Context context;
     private List<MedicineData> medicineList;
     private OnAlarmCheckedChangeListener listener;
-    private Set<String> medicineDates; // "yyyyMMdd" 형식의 날짜 문자열 저장
 
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd", Locale.getDefault());
-
-    // CalendarMedicineAdapter.java 내부
+    // 알람 체크 콜백
     public interface OnAlarmCheckedChangeListener {
-        void onAlarmCheckedChanged(MedicineData medicine, int alarmIndex, int isChecked); // boolean -> int로 변경
+        void onAlarmCheckedChanged(MedicineData medicine, int alarmIndex, int isChecked); // 1/0
     }
 
-
-    public CalendarMedicineAdapter(Context context, List<MedicineData> medicineList, OnAlarmCheckedChangeListener listener) {
+    public CalendarMedicineAdapter(Context context,
+                                   List<MedicineData> medicineList,
+                                   OnAlarmCheckedChangeListener listener) {
         this.context = context;
         this.medicineList = medicineList;
         this.listener = listener;
-        this.medicineDates = new HashSet<>();
-    }
-
-    // setMedicineDates 메서드 추가
-    public void setMedicineDates(List<Date> dates) {
-        medicineDates.clear();
-        for (Date date : dates) {
-            if (date != null) {
-                String formattedDate = sdf.format(date);
-                medicineDates.add(formattedDate);
-            }
-        }
-        notifyDataSetChanged();
     }
 
     @Override
     public int getItemViewType(int position) {
-        // 각 약의 알림 시간 리스트를 순회하여 헤더와 알림 아이템을 반환
         int count = 0;
         for (MedicineData medicine : medicineList) {
             if (position == count) {
@@ -91,10 +70,12 @@ public class CalendarMedicineAdapter extends RecyclerView.Adapter<RecyclerView.V
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         if (viewType == TYPE_HEADER) {
-            View view = LayoutInflater.from(context).inflate(R.layout.item_medicine_header, parent, false);
+            View view = LayoutInflater.from(context)
+                    .inflate(R.layout.item_medicine_header, parent, false);
             return new HeaderViewHolder(view);
         } else {
-            View view = LayoutInflater.from(context).inflate(R.layout.item_medicine_alarm, parent, false);
+            View view = LayoutInflater.from(context)
+                    .inflate(R.layout.item_medicine_alarm, parent, false);
             return new AlarmViewHolder(view);
         }
     }
@@ -122,24 +103,31 @@ public class CalendarMedicineAdapter extends RecyclerView.Adapter<RecyclerView.V
     // 헤더 뷰홀더
     class HeaderViewHolder extends RecyclerView.ViewHolder {
         TextView tvMedicineName;
-        ImageView ivMedicineIndicator; // 약이 있는 날짜 표시를 위한 아이콘
+        ImageView ivMedicineIndicator; // “하나라도 먹은 알람이 있는 약” 표시
 
         HeaderViewHolder(@NonNull View itemView) {
             super(itemView);
             tvMedicineName = itemView.findViewById(R.id.tvMedicineName);
-            ivMedicineIndicator = itemView.findViewById(R.id.ivMedicineIndicator); // 레이아웃에 추가 필요
+            ivMedicineIndicator = itemView.findViewById(R.id.ivMedicineIndicator);
         }
 
         void bind(MedicineData medicine) {
             tvMedicineName.setText(medicine.getPillName());
 
-            // 현재 날짜의 약 복용 여부에 따라 아이콘 표시
-            String currentDateStr = sdf.format(new Date()); // 현재 날짜
-            if (medicineDates.contains(currentDateStr)) {
-                ivMedicineIndicator.setVisibility(View.VISIBLE);
-            } else {
-                ivMedicineIndicator.setVisibility(View.GONE);
+            // 이 약에 대해 pillIsChecked1..N 중 하나라도 1이면 아이콘 표시
+            boolean hasTaken = false;
+            if (medicine.getAlarmTimes() != null) {
+                int alarmCount = medicine.getAlarmTimes().size();
+                for (int i = 0; i < alarmCount && i < 10; i++) {
+                    Integer v = medicine.getPillIsCheckedAt(i);
+                    if (v != null && v == 1) {
+                        hasTaken = true;
+                        break;
+                    }
+                }
             }
+
+            ivMedicineIndicator.setVisibility(hasTaken ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -160,13 +148,15 @@ public class CalendarMedicineAdapter extends RecyclerView.Adapter<RecyclerView.V
             boolean isChecked = (isCheckedInt != null && isCheckedInt == 1);
             tvAlarmTime.setText(alarmTime);
 
-            // 리사이클러뷰 재사용 시 기존 리스너 제거
+            // 리사이클러 뷰 재사용 방지
             cbAlarm.setOnCheckedChangeListener(null);
             cbAlarm.setChecked(isChecked);
 
             cbAlarm.setOnCheckedChangeListener((buttonView, isChecked1) -> {
                 int newIsChecked = isChecked1 ? 1 : 0; // 체크 시 1, 미체크 시 0
-                listener.onAlarmCheckedChanged(medicine, alarmIndex, newIsChecked);
+                if (listener != null) {
+                    listener.onAlarmCheckedChanged(medicine, alarmIndex, newIsChecked);
+                }
             });
         }
     }
