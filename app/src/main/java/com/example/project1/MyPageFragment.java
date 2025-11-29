@@ -24,11 +24,7 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.Spinner;
-import android.widget.ArrayAdapter;
 import android.widget.AdapterView;
-import android.graphics.Typeface;
-import androidx.core.content.res.ResourcesCompat;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
@@ -399,12 +395,9 @@ public class MyPageFragment extends Fragment {
 
 
     private void initFontSelector() {
-        // 스피너 어댑터 설정
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                requireContext(),
-                R.array.font_options,
-                android.R.layout.simple_spinner_item
-        );
+        // ⭐ 커스텀 어댑터 사용
+        String[] fontOptions = getResources().getStringArray(R.array.font_options);
+        FontSpinnerAdapter adapter = new FontSpinnerAdapter(requireContext(), fontOptions);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         fontSpinner.setAdapter(adapter);
 
@@ -416,56 +409,30 @@ public class MyPageFragment extends Fragment {
 
         // 폰트 선택 리스너
         fontSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            private boolean isInitialLoad = true; // 첫 로드 시 무시용
+
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                // 폰트 저장
-                prefs.edit().putInt("selected_font", position).apply();
+                // 첫 로드 시에는 무시 (이미 적용된 폰트)
+                if (isInitialLoad) {
+                    isInitialLoad = false;
+                    return;
+                }
 
-                // 폰트 적용
-                applySelectedFont(position);
+                int currentFont = prefs.getInt("selected_font", 0);
+
+                // 실제로 폰트가 변경되었을 때만 적용
+                if (currentFont != position) {
+                    // 폰트 저장
+                    prefs.edit().putInt("selected_font", position).apply();
+
+                    // Activity 재생성 (모든 Fragment에 폰트 적용됨)
+                    requireActivity().recreate();
+                }
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
     }
-
-    private void applySelectedFont(int position) {
-        Typeface typeface;
-
-        switch (position) {
-            case 1: // 바탕체
-                typeface = ResourcesCompat.getFont(requireContext(), R.font.batang);
-                break;
-            case 2: // 한컴 미래펀
-                typeface = ResourcesCompat.getFont(requireContext(), R.font.hmfmpyun);
-                break;
-            case 3: // 한컴 흐림
-                typeface = ResourcesCompat.getFont(requireContext(), R.font.hmhmold);
-                break;
-            default: // 기본 폰트
-                typeface = Typeface.DEFAULT;
-                break;
-        }
-
-        // 현재 화면의 모든 TextView에 폰트 적용
-        View rootView = getView();
-        if (rootView != null) {
-            applyFontToAllViews(rootView, typeface);
-        }
-    }
-
-    private void applyFontToAllViews(View view, Typeface typeface) {
-        if (view instanceof ViewGroup) {
-            ViewGroup viewGroup = (ViewGroup) view;
-            for (int i = 0; i < viewGroup.getChildCount(); i++) {
-                applyFontToAllViews(viewGroup.getChildAt(i), typeface);
-            }
-        } else if (view instanceof TextView) {
-            ((TextView) view).setTypeface(typeface);
-        } else if (view instanceof Button) {
-            ((Button) view).setTypeface(typeface);
-        }
-    }
-
 }

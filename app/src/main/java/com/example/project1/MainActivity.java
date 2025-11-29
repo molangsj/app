@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
+        // ⭐ 1. 다크모드 설정
         SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
         boolean isDark = prefs.getBoolean("dark_mode", false);
         if (isDark) {
@@ -70,6 +70,9 @@ public class MainActivity extends AppCompatActivity implements
         } else {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         }
+
+        // ⭐ 2. 폰트 테마 적용 (super.onCreate() 전에!)
+        applySelectedFont(prefs);
 
         super.onCreate(savedInstanceState);
 
@@ -159,6 +162,29 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
 
+    }
+
+    // ⭐ 3. 폰트 적용 메서드 추가
+    private void applySelectedFont(SharedPreferences prefs) {
+        int selectedFont = prefs.getInt("selected_font", 0);
+
+        switch (selectedFont) {
+            case 0: // 기본 폰트
+                setTheme(R.style.Theme_Project1);
+                break;
+            case 1: // 바탕체
+                setTheme(R.style.Theme_Project1_Batang);
+                break;
+            case 2: // 한컴 미래펀
+                setTheme(R.style.Theme_Project1_HMFMPyun);
+                break;
+            case 3: // 한컴 흐림
+                setTheme(R.style.Theme_Project1_HMHmold);
+                break;
+            default:
+                setTheme(R.style.Theme_Project1);
+                break;
+        }
     }
 
     /**

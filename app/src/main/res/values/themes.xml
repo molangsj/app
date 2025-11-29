@@ -1,8 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Base application theme -->
     <style name="Base.Theme.Project1" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryVariant">@color/colorPrimaryVariant</item>
         <item name="colorOnPrimary">@color/white</item>
@@ -10,11 +8,28 @@
         <item name="colorSecondaryVariant">@color/colorSecondary</item>
         <item name="colorOnSecondary">@color/black</item>
         <item name="colorButtonNormal">#C4A8A8</item>
-
-        <!-- 폰트 적용 -->
-        <item name="android:fontFamily">@font/hmfmpyum_family</item>
-        <item name="fontFamily">@font/hmfmpyum_family</item>
     </style>
 
-    <style name="Theme.Project1" parent="Base.Theme.Project1" />
+    <!-- 기본 폰트 테마 (시스템 기본) -->
+    <style name="Theme.Project1" parent="Base.Theme.Project1">
+        <!-- 폰트 설정 없음 = 시스템 기본 폰트 -->
+    </style>
+
+    <!-- 바탕체 테마 -->
+    <style name="Theme.Project1.Batang" parent="Base.Theme.Project1">
+        <item name="android:fontFamily">@font/batang</item>
+        <item name="fontFamily">@font/batang</item>
+    </style>
+
+    <!-- 한컴 미래펀 테마 -->
+    <style name="Theme.Project1.HMFMPyun" parent="Base.Theme.Project1">
+        <item name="android:fontFamily">@font/hmfmpyun</item>
+        <item name="fontFamily">@font/hmfmpyun</item>
+    </style>
+
+    <!-- 한컴 흐림 테마 -->
+    <style name="Theme.Project1.HMHmold" parent="Base.Theme.Project1">
+        <item name="android:fontFamily">@font/hmhmold</item>
+        <item name="fontFamily">@font/hmhmold</item>
+    </style>
 </resources>
