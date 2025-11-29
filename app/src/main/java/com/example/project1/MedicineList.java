@@ -85,7 +85,7 @@ public class MedicineList extends Fragment implements
         super.onResume();
         if (username != null && !username.isEmpty()) {
             Log.d("MedicineListFragment", "onResume: username=" + username);
-            dateStr = getCurrentDate(); // 알람 설정에 사용할 오늘 날짜
+            dateStr = getCurrentDate(); // 알람 설정에 사용할 오늘 날짜 (AlarmReceiver 전달용)
             getMedicineListFromFirestore();  // "현재 복용 약" 목록 가져오기
         } else {
             Log.e("MedicineListFragment", "Invalid username: " + username);
@@ -210,8 +210,6 @@ public class MedicineList extends Fragment implements
         });
     }
 
-
-
     private void updateUI() {
         if (medicineList.isEmpty()) {
             binding.medicineRecyclerView.setVisibility(View.GONE);
@@ -223,53 +221,108 @@ public class MedicineList extends Fragment implements
         }
     }
 
+    /**
+     * 알람 토글 시 dateStr 도 약이 저장된 날짜 기준으로 전달하도록 수정
+     */
     @Override
     public void onAlarmToggled(String medicationId, boolean isEnabled) {
         if (medicationId == null || medicationId.isEmpty()) {
             Log.e("MedicineListFragment", "Invalid medicationId");
             return;
         }
-        String dateStr = getCurrentDate();
 
-        firestoreHelper.updateAlarmStatus(username, dateStr, medicationId, isEnabled, new FirestoreHelper.StatusCallback() {
-            @Override
-            public void onStatusUpdated() {
-                Toast.makeText(getContext(), isEnabled ? "알람이 설정되었습니다." : "알람이 해제되었습니다.", Toast.LENGTH_SHORT).show();
-                MedicineData updatedMedicine = findMedicineById(medicationId);
-                if (updatedMedicine != null) {
-                    if (isEnabled) {
-                        setAlarm(updatedMedicine);
-                    } else {
-                        cancelAlarm(updatedMedicine);
-                    }
-                }
-            }
+        // 리스트에서 해당 약 객체 찾기
+        MedicineData medicine = findMedicineById(medicationId);
+        if (medicine == null) {
+            Log.e("MedicineListFragment", "Medicine not found for id: " + medicationId);
+            return;
+        }
 
-            @Override
-            public void onStatusUpdateFailed(Exception e) {
-                Toast.makeText(getContext(), "알람 상태 업데이트에 실패했습니다.", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
+        // 약이 저장된 날짜 사용 (null/빈 값이면 fallback 으로 오늘 날짜)
+        String dateStrForAlarm = medicine.getDateStr();
+        if (dateStrForAlarm == null || dateStrForAlarm.isEmpty()) {
+            dateStrForAlarm = getCurrentDate();
+        }
 
-    @Override
-    public void onFavoriteToggled(String medicationId, boolean isFavorite) {
-        String dateStr = getCurrentDate();
+        final String finalDateStrForAlarm = dateStrForAlarm;
 
-        firestoreHelper.updateFavoriteStatus(
+        firestoreHelper.updateAlarmStatus(
                 username,
-                dateStr,
+                finalDateStrForAlarm,
                 medicationId,
-                isFavorite,
+                isEnabled,
                 new FirestoreHelper.StatusCallback() {
                     @Override
                     public void onStatusUpdated() {
+                        Toast.makeText(getContext(), isEnabled ? "알람이 설정되었습니다." : "알람이 해제되었습니다.", Toast.LENGTH_SHORT).show();
+                        MedicineData updatedMedicine = findMedicineById(medicationId);
+                        if (updatedMedicine != null) {
+                            if (isEnabled) {
+                                setAlarm(updatedMedicine);
+                            } else {
+                                cancelAlarm(updatedMedicine);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onStatusUpdateFailed(Exception e) {
+                        Toast.makeText(getContext(), "알람 상태 업데이트에 실패했습니다.", Toast.LENGTH_SHORT).show();
+                        Log.e("MedicineListFragment", "updateAlarmStatus failed", e);
+                    }
+                }
+        );
+    }
+
+    /**
+     * 즐겨찾기 토글 시 약의 dateStr 를 사용해서 Firestore 업데이트하도록 수정
+     */
+    @Override
+    public void onFavoriteToggled(String medicationId, boolean isFavorite) {
+        if (medicationId == null || medicationId.isEmpty()) {
+            Log.e("MedicineListFragment", "Invalid medicationId in onFavoriteToggled");
+            return;
+        }
+
+        // 리스트에서 해당 약 객체 찾기
+        MedicineData medicine = findMedicineById(medicationId);
+        if (medicine == null) {
+            Log.e("MedicineListFragment", "Medicine not found for id: " + medicationId);
+            return;
+        }
+
+        // 약이 저장된 실제 날짜 사용
+        String dateStrForFavorite = medicine.getDateStr();
+        if (dateStrForFavorite == null || dateStrForFavorite.isEmpty()) {
+            // 혹시라도 dateStr 이 비어 있으면 오늘 날짜로 fallback
+            dateStrForFavorite = getCurrentDate();
+        }
+
+        final boolean newFavorite = isFavorite;
+        final MedicineData targetMedicine = medicine;
+        final String finalDateStrForFavorite = dateStrForFavorite;
+
+        firestoreHelper.updateFavoriteStatus(
+                username,
+                finalDateStrForFavorite,
+                medicationId,
+                newFavorite,
+                new FirestoreHelper.StatusCallback() {
+                    @Override
+                    public void onStatusUpdated() {
+                        // 서버에서 정상 반영 후 다시 목록 불러와서 정렬/상태 싱크
                         getMedicineListFromFirestore();
                     }
 
                     @Override
                     public void onStatusUpdateFailed(Exception e) {
                         Toast.makeText(getContext(), "즐겨찾기 상태 업데이트에 실패했습니다.", Toast.LENGTH_SHORT).show();
+                        Log.e("MedicineListFragment", "updateFavoriteStatus failed", e);
+                        // 실패했으니 로컬 상태 롤백
+                        targetMedicine.setFavorite(!newFavorite);
+                        if (adapter != null) {
+                            adapter.notifyDataSetChanged();
+                        }
                     }
                 }
         );
@@ -327,8 +380,6 @@ public class MedicineList extends Fragment implements
                 .setPositiveButton("삭제", (dialog, which) -> {
                     String dateStr = getCurrentDate();
 
-                    // 삭제 확인 다이얼로그 안의 '삭제' 버튼 콜백 부분
-
                     firestoreHelper.deleteCurrentMedication(
                             username,
                             medicine.getPillName(),
@@ -350,7 +401,6 @@ public class MedicineList extends Fragment implements
                                 }
                             }
                     );
-
 
                 })
                 .setNegativeButton("취소", (dialog, which) -> {
@@ -448,7 +498,6 @@ public class MedicineList extends Fragment implements
                     Toast.makeText(requireContext(),
                             "정확한 알람 권한이 없어 알람을 설정할 수 없습니다.",
                             Toast.LENGTH_SHORT).show();
-                    // 정확 알람 권한이 없는 상태이므로 더 이상 반복할 필요 없음
                     break;
                 }
             }
@@ -495,7 +544,6 @@ public class MedicineList extends Fragment implements
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // 이 프래그먼트 떠날 때는 무조건 로딩 끄기
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).showLoading(false);
         }
