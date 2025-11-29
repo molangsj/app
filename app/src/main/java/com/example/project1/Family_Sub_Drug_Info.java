@@ -17,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.bumptech.glide.Glide;
 import com.example.project1.databinding.ActivityFamilyDrugInfoBinding;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 public class Family_Sub_Drug_Info extends Fragment {
+
     private static final String ARG_MEMBER_ID = "memberId";
     private String memberId2;
     private ActivityFamilyDrugInfoBinding binding;
@@ -38,162 +40,258 @@ public class Family_Sub_Drug_Info extends Fragment {
         fragment.setArguments(args);
         return fragment;
     }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // FragmentResultListener 설정
-        getParentFragmentManager().setFragmentResultListener("request", this, (requestKey, result) -> {
-            if ("request".equals(requestKey)) {
-                String memberId = result.getString("memberId");
-                if (memberId != null) {
-                    Log.d("Family_Sub_Drug_Info", "Received memberId: " + memberId);
-                    memberId2 = memberId; // 전달받은 memberId로 데이터 처리
+        // arguments 로 넘어온 값 우선
+        if (getArguments() != null) {
+            memberId2 = getArguments().getString(ARG_MEMBER_ID);
+        }
 
-                    // memberId를 수신한 후 fetchDrugInfo 호출
-                    if (binding != null) { // View가 이미 생성된 상태인지 확인
-                        fetchDrugInfo(binding.getRoot());
+        // FragmentResultListener 로도 받을 수 있게 유지
+        getParentFragmentManager().setFragmentResultListener(
+                "request",
+                this,
+                (requestKey, result) -> {
+                    if (!"request".equals(requestKey)) return;
+
+                    String memberId = result.getString("memberId");
+                    if (memberId != null) {
+                        Log.d("Family_Sub_Drug_Info", "Received memberId via result: " + memberId);
+                        memberId2 = memberId;
+                        if (binding != null) {
+                            fetchDrugInfo(binding.getRoot());
+                        }
                     }
                 }
-            }
-        });
+        );
     }
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(
+            @NonNull LayoutInflater inflater,
+            @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState
+    ) {
         binding = ActivityFamilyDrugInfoBinding.inflate(inflater, container, false);
+
         if (memberId2 != null) {
             fetchDrugInfo(binding.getRoot());
+        } else {
+            Log.w("Family_Sub_Drug_Info", "memberId2 is null in onCreateView");
         }
+
         return binding.getRoot();
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(
+            @NonNull View view,
+            @Nullable Bundle savedInstanceState
+    ) {
         super.onViewCreated(view, savedInstanceState);
 
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                // 뒤로 가기 눌렀을 때 RecyclerView 다시 표시
-                getParentFragmentManager().popBackStack();
-                View recyclerView = requireActivity().findViewById(R.id.family_content);
-                if (recyclerView != null) {
-                    recyclerView.setVisibility(View.VISIBLE);
+        // 뒤로가기 처리
+        requireActivity().getOnBackPressedDispatcher().addCallback(
+                getViewLifecycleOwner(),
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        getParentFragmentManager().popBackStack();
+                        View recyclerView = requireActivity().findViewById(R.id.family_content);
+                        if (recyclerView != null) {
+                            recyclerView.setVisibility(View.VISIBLE);
+                        }
+                    }
                 }
-            }
-        });
+        );
+    }
+
+    private void showGlobalLoading(boolean show) {
+        if (!isAdded()) return;
+        if (getActivity() instanceof MainActivity) {
+            ((MainActivity) getActivity()).showLoading(show);
+        }
     }
 
     private void fetchDrugInfo(View fragmentView) {
+        if (memberId2 == null || memberId2.isEmpty()) {
+            Log.e("Family_Sub_Drug_Info", "fetchDrugInfo: memberId2 is null/empty");
+            return;
+        }
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+        showGlobalLoading(true);
 
         db.collection("FamilyMember")
                 .document(memberId2)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
+                    if (!isAdded()) return;
+                    showGlobalLoading(false);
+
                     if (documentSnapshot.exists()) {
-                        // 날짜 필드를 추출하여 리스트로 저장
+
+                        // 1) 상단 닉네임 세팅 (displayName 우선, 없으면 문서 ID)
+                        TextView memberNameView = fragmentView.findViewById(R.id.memberId);
+                        String displayName = documentSnapshot.getString("displayName");
+                        if (displayName != null && !displayName.trim().isEmpty()) {
+                            memberNameView.setText(displayName);
+                        } else {
+                            memberNameView.setText(memberId2);
+                        }
+
+                        // 2) 프로필 이미지 세팅 (profileImageUrl 사용)
+                        ImageView profileImageView = fragmentView.findViewById(R.id.top_mem1);
+                        String profileImageUrl = documentSnapshot.getString("profileImageUrl");
+                        if (profileImageUrl != null && !profileImageUrl.trim().isEmpty()) {
+                            Glide.with(fragmentView.getContext())
+                                    .load(profileImageUrl)
+                                    .placeholder(R.drawable.user1)
+                                    .circleCrop()
+                                    .into(profileImageView);
+                        } else {
+                            profileImageView.setImageResource(R.drawable.user1);
+                        }
+
+                        // 3) 날짜 필드 모으기
                         List<Integer> dateCollectionNames = new ArrayList<>();
-                        for (String key : documentSnapshot.getData().keySet()) {
-                            try {
-                                // 날짜 문자열을 정수로 변환하여 리스트에 추가
-                                dateCollectionNames.add(Integer.parseInt(key));
-                            } catch (NumberFormatException e) {
-                                // 날짜가 아닌 필드는 무시
-                                Log.d("Firestore", "Non-date field ignored: " + key);
+                        Map<String, Object> data = documentSnapshot.getData();
+                        if (data != null) {
+                            for (String key : data.keySet()) {
+                                try {
+                                    dateCollectionNames.add(Integer.parseInt(key));
+                                } catch (NumberFormatException e) {
+                                    Log.d("Firestore", "Non-date field ignored: " + key);
+                                }
                             }
                         }
 
                         if (!dateCollectionNames.isEmpty()) {
-                            // 날짜 리스트 정렬 (내림차순: 최신 날짜가 첫 번째)
                             Collections.sort(dateCollectionNames, Collections.reverseOrder());
-
-                            // 최신 날짜 컬렉션을 선택
                             int latestDate = dateCollectionNames.get(0);
                             Log.d("Firestore", "Recent date collection: " + latestDate);
 
-                            // Step 2: 최신 날짜 컬렉션에서 Drug_Info 데이터 가져오기
                             fetchDrugInfoFromLatestDate(fragmentView, String.valueOf(latestDate));
                         } else {
                             Log.d("Firestore", "No date collections found.");
+                            // 약 정보 없을 때 UI 비우기
+                            LinearLayout scrollbarContent = fragmentView.findViewById(R.id.scrollbar_content);
+                            scrollbarContent.removeAllViews();
                         }
                     } else {
-                        Log.d("Firestore", "Member1 document doesn't exist.");
+                        Log.d("Firestore", "Member document doesn't exist: " + memberId2);
                     }
                 })
-                .addOnFailureListener(e -> Log.e("Firestore", "Failed to fetch Member1 document", e));
+                .addOnFailureListener(e -> {
+                    if (!isAdded()) return;
+                    showGlobalLoading(false);
+                    Log.e("Firestore", "Failed to fetch member document", e);
+                });
     }
 
 
 
     private void fetchDrugInfoFromLatestDate(View fragmentView, String latestDate) {
+        if (memberId2 == null || memberId2.isEmpty()) return;
+
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        // 최신 날짜 컬렉션에서 pillType이 200 이상인 문서만 가져오기
+        showGlobalLoading(true);
+
         db.collection("FamilyMember")
                 .document(memberId2)
                 .collection(latestDate)
-                .whereGreaterThanOrEqualTo("pillType", 200L) // pillType >= 200 조건 추가
+                // .whereGreaterThanOrEqualTo("pillType", 200L)  // ← 일단 주석
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
+                    if (!isAdded()) return;
+                    showGlobalLoading(false);
+
+                    LinearLayout scrollbarContent = fragmentView.findViewById(R.id.scrollbar_content);
+                    scrollbarContent.removeAllViews();
+
+                    Log.d("Firestore", "Docs in " + latestDate + ": " + querySnapshot.size());
+
                     if (!querySnapshot.isEmpty()) {
                         for (DocumentSnapshot documentSnapshot : querySnapshot.getDocuments()) {
-                            // 약 이름은 문서 이름
                             String drugName = documentSnapshot.getId();
                             Log.d("Firestore", "Drug name fetched: " + drugName);
 
-                            // 약 정보는 문서 데이터
                             Map<String, Object> drugData = documentSnapshot.getData();
                             if (drugData != null) {
-                                // pillType 및 pillIsChecked 필드 가져오기
-                                Long pillIsChecked = (Long) drugData.getOrDefault("pillIsChecked", 0L);
-                                Long pillType = (Long) drugData.getOrDefault("pillType", 0L);
+                                Long pillType = null;
+                                Object pillTypeObj = drugData.get("pillType");
+                                if (pillTypeObj instanceof Number) {
+                                    pillType = ((Number) pillTypeObj).longValue();
+                                }
 
-                                // UI 업데이트
-                                addDrugInfoToLayout(fragmentView, drugName, pillType, pillIsChecked);
+                                Object isCheckedObj = drugData.get("pillIsChecked");
+                                boolean isChecked = false;
+                                if (isCheckedObj instanceof Boolean) {
+                                    isChecked = (Boolean) isCheckedObj;
+                                } else if (isCheckedObj instanceof Number) {
+                                    isChecked = ((Number) isCheckedObj).intValue() != 0;
+                                }
+
+                                addDrugInfoToLayout(fragmentView, drugName, pillType, isChecked);
                             }
                         }
                     } else {
                         Log.d("Firestore", latestDate + " 컬렉션에 문서가 없습니다.");
                     }
                 })
-                .addOnFailureListener(e -> Log.e("Firestore", latestDate + " 컬렉션 데이터 가져오기 실패", e));
+                .addOnFailureListener(e -> {
+                    if (!isAdded()) return;
+                    showGlobalLoading(false);
+                    Log.e("Firestore", latestDate + " 컬렉션 데이터 가져오기 실패", e);
+                });
     }
 
 
-
-    private void addDrugInfoToLayout(View fragmentView, String drugName, Long pillType, Long pillIsChecked) {
+    private void addDrugInfoToLayout(
+            View fragmentView,
+            String drugName,
+            @Nullable Long pillType,
+            boolean isChecked
+    ) {
         LinearLayout scrollbarContent = fragmentView.findViewById(R.id.scrollbar_content);
-        TextView membername=fragmentView.findViewById(R.id.memberId);
-        membername.setText(memberId2);
-        // 약 이름 (drugName)와 약 유형 (pillType)을 포함하여 약 이름 표시
-        String pillName = drugName;
 
-        // 최상위 LinearLayout 생성
+        // ===== 최상위 pillLayout =====
         LinearLayout pillLayout = new LinearLayout(fragmentView.getContext());
         pillLayout.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams pillLayoutParams = new LinearLayout.LayoutParams(
-                dpToPx(fragmentView.getContext(), 260),  // 260dp
+                dpToPx(fragmentView.getContext(), 260),
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
         pillLayoutParams.gravity = Gravity.CENTER;
-        pillLayoutParams.setMargins(0, 0, 0, dpToPx(fragmentView.getContext(), 15)); // marginBottom 15dp
+        pillLayoutParams.setMargins(
+                0,
+                0,
+                0,
+                dpToPx(fragmentView.getContext(), 15)
+        );
         pillLayout.setLayoutParams(pillLayoutParams);
         pillLayout.setGravity(Gravity.CENTER);
 
-        // ImageView (약 아이콘)
+        // ===== 약 아이콘 컨테이너 =====
         LinearLayout pillIconContainer = new LinearLayout(fragmentView.getContext());
         LinearLayout.LayoutParams containerParams = new LinearLayout.LayoutParams(
                 dpToPx(fragmentView.getContext(), 50),
                 dpToPx(fragmentView.getContext(), 50)
         );
-        containerParams.setMargins(0, dpToPx(fragmentView.getContext(), 5), 0, dpToPx(fragmentView.getContext(), 5));
+        containerParams.setMargins(
+                0,
+                dpToPx(fragmentView.getContext(), 5),
+                0,
+                dpToPx(fragmentView.getContext(), 5)
+        );
         pillIconContainer.setLayoutParams(containerParams);
         pillIconContainer.setGravity(Gravity.CENTER);
         pillIconContainer.setBackgroundResource(R.drawable.circle);
 
-        // ImageView (약 이미지)
         ImageView medicineIcon = new ImageView(fragmentView.getContext());
         LinearLayout.LayoutParams medicineIconParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -204,7 +302,7 @@ public class Family_Sub_Drug_Info extends Fragment {
         pillIconContainer.addView(medicineIcon);
         pillLayout.addView(pillIconContainer);
 
-        // RelativeLayout (pill 정보 포함 영역)
+        // ===== 정보 영역 =====
         RelativeLayout pillInfoLayout = new RelativeLayout(fragmentView.getContext());
         RelativeLayout.LayoutParams pillInfoLayoutParams = new RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT,
@@ -212,21 +310,26 @@ public class Family_Sub_Drug_Info extends Fragment {
         );
         pillInfoLayout.setLayoutParams(pillInfoLayoutParams);
 
-        // TextView (약 이름 표시)
+        // 약 이름
         TextView pillNameTextView = new TextView(fragmentView.getContext());
         RelativeLayout.LayoutParams pillNameParams = new RelativeLayout.LayoutParams(
-                dpToPx(fragmentView.getContext(), 160), // 160dp
+                dpToPx(fragmentView.getContext(), 160),
                 RelativeLayout.LayoutParams.WRAP_CONTENT
         );
-        pillNameParams.setMargins(dpToPx(fragmentView.getContext(), 10), 0, 0, 0);
+        pillNameParams.setMargins(
+                dpToPx(fragmentView.getContext(), 10),
+                0,
+                0,
+                0
+        );
         pillNameTextView.setLayoutParams(pillNameParams);
-        pillNameTextView.setText(pillName);  // 약 이름 + 타입 표시
+        pillNameTextView.setText(drugName);
         pillNameTextView.setTextSize(15);
         pillNameTextView.setPadding(0, 0, 0, dpToPx(fragmentView.getContext(), 5));
         pillNameTextView.setBackgroundResource(R.drawable.border_setting_below);
         pillInfoLayout.addView(pillNameTextView);
 
-        // ImageView (체크 아이콘)
+        // 체크 아이콘
         ImageView pillCheckIcon = new ImageView(fragmentView.getContext());
         RelativeLayout.LayoutParams pillCheckIconParams = new RelativeLayout.LayoutParams(
                 dpToPx(fragmentView.getContext(), 18),
@@ -234,23 +337,26 @@ public class Family_Sub_Drug_Info extends Fragment {
         );
         pillCheckIconParams.addRule(RelativeLayout.CENTER_VERTICAL);
         pillCheckIconParams.addRule(RelativeLayout.ALIGN_PARENT_END);
-        pillCheckIconParams.setMargins(0, 0, dpToPx(fragmentView.getContext(), 7), 0);
+        pillCheckIconParams.setMargins(
+                0,
+                0,
+                dpToPx(fragmentView.getContext(), 7),
+                0
+        );
         pillCheckIcon.setLayoutParams(pillCheckIconParams);
 
-        // pillischecked 값을 기반으로 아이콘 설정
-        if (pillIsChecked != null && pillIsChecked.equals(1L)) {  // Long 값을 비교할 때는 equals() 사용
+        if (isChecked) {
             pillCheckIcon.setImageResource(R.drawable.pill_checked);
         } else {
             pillCheckIcon.setImageResource(R.drawable.pill_check);
         }
+
         pillInfoLayout.addView(pillCheckIcon);
         pillLayout.addView(pillInfoLayout);
 
-        // 최종 레이아웃 추가
         scrollbarContent.addView(pillLayout);
     }
 
-    // dp 값을 px로 변환하는 헬퍼 메서드
     private int dpToPx(Context context, int dp) {
         float density = context.getResources().getDisplayMetrics().density;
         return Math.round(dp * density);

@@ -112,7 +112,6 @@ public class Family_main_sub extends Fragment {
         notificationService = RetrofitClient.getInstance().create(NotificationService.class);
         familyViewModel = new ViewModelProvider(requireActivity()).get(FamilyViewModel.class);
 
-        // 여기만 XML에 맞게 수정
         recyclerView = view.findViewById(R.id.family_content);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
@@ -120,10 +119,26 @@ public class Family_main_sub extends Fragment {
         displayedMembers = new ArrayList<>();
         removedMemberIds = new HashSet<>();
 
+        // ★ 여기: 지역변수 말고 필드 adapter 사용
         adapter = new FamilyAdapter(
-                displayedMembers,
-                position -> handleExtraInfoClick(position),
-                this::familydruginfo
+                familyMembers,
+                position -> {
+                    handleExtraInfoClick(position);
+                },
+                memberDocId -> {
+                    // ★ 가족 리스트 숨기기
+                    recyclerView.setVisibility(View.GONE);
+
+                    Family_Sub_Drug_Info fragment =
+                            Family_Sub_Drug_Info.newInstance(memberDocId);
+
+                    requireActivity()
+                            .getSupportFragmentManager()
+                            .beginTransaction()
+                            .replace(R.id.fragment_container, fragment)
+                            .addToBackStack(null)
+                            .commit();
+                }
         );
         recyclerView.setAdapter(adapter);
 
@@ -156,6 +171,7 @@ public class Family_main_sub extends Fragment {
                     .commit();
         });
     }
+
 
     private String getCurrentUid() {
         FirebaseAuth auth = FirebaseAuth.getInstance();
