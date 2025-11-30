@@ -246,94 +246,13 @@ public class Family_statistic extends Fragment {
         int currentCompletedMembers = completedMembers.incrementAndGet();
         Log.d("FirestoreDebug", "Completed members: " + currentCompletedMembers + "/" + totalMembers);
         Log.d("FirestoreDebug", "Current pillTypeCount: " + pillTypeCount);
+
         // 모든 멤버 데이터 처리가 끝난 경우 확인
-        if (completedMembers.incrementAndGet() == totalMembers) {
+        if (currentCompletedMembers == totalMembers) {
             Log.d("PieChart", "Final pillTypeCount: " + pillTypeCount);
             updateGraph(pillTypeCount);
         }
     }
-
-
-//    private void fetchDrugDataFromAllDates(List<String> dateCollectionNames, Map<Integer, Integer> pillTypeCount) {
-//        FirebaseFirestore db = FirebaseFirestore.getInstance();
-//        AtomicInteger completedDates = new AtomicInteger(0);
-//
-//        // 날짜별로 데이터를 가져오도록 반복
-//        for (String date : dateCollectionNames) {
-//            Log.d("Firestore", "Processing date collection: " + date);
-//
-//            // 모든 문서를 순회하며 서브컬렉션 데이터 처리
-//            db.collection("FamilyMember")
-//                    .get()
-//                    .addOnSuccessListener(querySnapshot -> {
-//                        for (DocumentSnapshot document : querySnapshot.getDocuments()) {
-//                            String memberId = document.getId();
-//                            fetchSubCollectionData(memberId, date, pillTypeCount, completedDates, dateCollectionNames.size());
-//                        }
-//                    })
-//                    .addOnFailureListener(e -> {
-//                        Log.e("Firestore", "Failed to fetch FamilyMember collection", e);
-//                        // 날짜 처리 완료로 간주 (오류 처리 후에도 진행)
-//                        checkIfAllDatesCompleted(dateCollectionNames.size(), completedDates, pillTypeCount);
-//                    });
-//        }
-//    }
-//
-//    private void fetchSubCollectionData(String memberId, String date, Map<Integer, Integer> pillTypeCount,
-//                                        AtomicInteger completedDates, int totalDates) {
-//        FirebaseFirestore db = FirebaseFirestore.getInstance();
-//        AtomicInteger completedSubCollections = new AtomicInteger(0);
-//
-//        // 서브컬렉션명 (1부터 10까지)
-//        for (int i = 1; i <= 10; i++) {
-//            String subCollectionName = "drug_info_" + i;
-//            Log.d("Firestore", "Processing sub-collection: " + subCollectionName);
-//
-//            db.collection("FamilyMember")
-//                    .document(memberId)
-//                    .collection(date)
-//                    .document("Drug_Info")
-//                    .collection(subCollectionName)
-//                    .get()
-//                    .addOnSuccessListener(querySnapshot -> {
-//                        Log.d("Firestore", "Sub-collection fetched: " + subCollectionName + ", Documents: " + querySnapshot.size());
-//                        if (!querySnapshot.isEmpty()) {
-//                            for (DocumentSnapshot drugSnapshot : querySnapshot.getDocuments()) {
-//                                Object pillTypeObj = drugSnapshot.get("pilltype");
-//
-//                                // 약 정보 누적
-//                                if (pillTypeObj instanceof Number) {
-//                                    int pillType = ((Number) pillTypeObj).intValue();
-//                                    pillTypeCount.put(pillType, pillTypeCount.getOrDefault(pillType, 0) + 1);
-//                                    Log.d("Firestore", "Pill type: " + pillType + ", Count: " + pillTypeCount.get(pillType));
-//                                } else {
-//                                    Log.e("Firestore Warning", "Invalid pilltype value: " + pillTypeObj);
-//                                }
-//                            }
-//                        }
-//
-//                        // 모든 서브컬렉션 처리 완료 체크
-//                        if (completedSubCollections.incrementAndGet() == 10) {
-//                            // 서브컬렉션 모두 완료 후 날짜 처리 완료 확인
-//                            checkIfAllDatesCompleted(totalDates, completedDates, pillTypeCount);
-//                        }
-//                    })
-//                    .addOnFailureListener(e -> {
-//                        Log.e("Firestore", "Failed to fetch data from sub-collection: " + subCollectionName, e);
-//                        if (completedSubCollections.incrementAndGet() == 10) {
-//                            checkIfAllDatesCompleted(totalDates, completedDates, pillTypeCount);
-//                        }
-//                    });
-//        }
-//    }
-//
-//    private void checkIfAllDatesCompleted(int totalDates, AtomicInteger completedDates, Map<Integer, Integer> pillTypeCount) {
-//        // 모든 날짜 데이터 처리가 끝난 경우 확인
-//        if (completedDates.incrementAndGet() == totalDates) {
-//            Log.d("PieChart", "pillTypeCount contents: " + pillTypeCount);
-//            updateGraph(pillTypeCount);
-//        }
-//    }
 
 
     private void updateGraph(Map<Integer, Integer> pillTypeCount) {
@@ -346,102 +265,49 @@ public class Family_statistic extends Fragment {
 
             String label;
             switch (pillType) {
-                //처방약
-                case 101:
-                    label = "감기약";
-                    break;
-                case 102:
-                    label = "해열제";
-                    break;
-                case 103:
-                    label = "심장 약";
-                    break;
-                case 104:
-                    label = "위장 약";
-                    break;
-                case 105:
-                    label = "진통제";
-                    break;
-                case 106:
-                    label = "항생제";
-                    break;
-                case 107:
-                    label = "피임약";
-                    break;
-                case 108:
-                    label = "항우울제";
-                    break;
-                case 109:
-                    label = "항암제";
-                    break;
-                case 110:
-                    label = "정신과 약";
-                    break;
-                case 111:
-                    label = "당뇨병 약";
-                    break;
-                case 112:
-                    label = "고혈압 약";
-                    break;
-                case 113:
-                    label = "호흡기 약";
-                    break;
-// 보조제
-                case 201:
-                    label = "비타민";
-                    break;
-                case 202:
-                    label = "유산균";
-                    break;
-                case 203:
-                    label = "단백질 보충제";
-                    break;
-                case 204:
-                    label = "홍삼";
-                    break;
-                case 205:
-                    label = "소화제";
-                    break;
-                case 206:
-                    label = "오메가-3";
-                    break;
-                case 207:
-                    label = "콜라겐";
-                    break;
-                case 208:
-                    label = "철분제";
-                    break;
-                case 209:
-                    label = "기타 보조제";
-                    break;
-                default:
-                    label = "기타약";
+                case 101: label = "감기약"; break;
+                case 102: label = "해열제"; break;
+                case 103: label = "심장약"; break;
+                case 104: label = "위장약"; break;
+                case 105: label = "진통제"; break;
+                case 106: label = "항생제"; break;
+                case 107: label = "피임약"; break;
+                case 108: label = "항우울제"; break;
+                case 109: label = "항암제"; break;
+                case 110: label = "정신과약"; break;
+                case 111: label = "당뇨병약"; break;
+                case 112: label = "고혈압약"; break;
+                case 113: label = "호흡기약"; break;
+                case 201: label = "비타민"; break;
+                case 202: label = "유산균"; break;
+                case 203: label = "단백질보충제"; break;
+                case 204: label = "홍삼"; break;
+                case 205: label = "소화제"; break;
+                case 206: label = "오메가-3"; break;
+                case 207: label = "콜라겐"; break;
+                case 208: label = "철분제"; break;
+                case 209: label = "기타보조제"; break;
+                default: label = "기타약";
             }
 
             entries.add(new PieEntry(count, label));
-            Log.d("PieChart", "PieEntry added: label = " + label + ", count = " + count);
         }
 
-        // PieDataSet 생성
         PieDataSet dataSet = new PieDataSet(entries, "");
-        dataSet.setColors(ColorTemplate.MATERIAL_COLORS); // 색상 설정
-        dataSet.setValueTextSize(16f); // 비율 글씨 크기
-        dataSet.setValueTextColor(Color.BLACK); // 비율 글씨 색상
+        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
 
-        // 약 이름 설정
-        pieChart.setEntryLabelColor(Color.BLACK); // 약 이름 색상
-        pieChart.setEntryLabelTextSize(18f);// 약 이름 글씨 크기
-
-        // 비율 값을 슬라이스 내부에 배치
-        dataSet.setValueLinePart1OffsetPercentage(150f); // 슬라이스와 값 사이의 거리
-        dataSet.setValueLinePart1Length(0.2f); // 첫 번째 선 길이
-        dataSet.setValueLinePart2Length(0.4f); // 두 번째 선 길이
-        dataSet.setYValuePosition(PieDataSet.ValuePosition.INSIDE_SLICE); // 비율 위치 (슬라이스 내부)
+        // 퍼센트를 슬라이스 내부에만 표시
+        dataSet.setValueTextSize(10f);
+        dataSet.setValueTextColor(Color.BLACK);
+        dataSet.setYValuePosition(PieDataSet.ValuePosition.INSIDE_SLICE);
 
         // PieData 생성 및 설정
         PieData data = new PieData(dataSet);
-        data.setValueFormatter(new PercentFormatter(pieChart)); // 비율 포맷
+        data.setValueFormatter(new PercentFormatter(pieChart));
         pieChart.setData(data);
+
+        // 약 이름을 슬라이스에서 제거 (범례에만 표시)
+        pieChart.setDrawEntryLabels(false);
 
         // 차트 갱신
         pieChart.invalidate();
@@ -455,18 +321,18 @@ public class Family_statistic extends Fragment {
         pieChart.setTransparentCircleRadius(50f);
         pieChart.setHoleRadius(40f);
         pieChart.setRotationEnabled(true);
-        pieChart.setEntryLabelTextSize(12f);
+        //pieChart.setEntryLabelTextSize(12f);
 
 
         Legend legend = pieChart.getLegend();
-        legend.setTextSize(20f); // 범례 텍스트 크기 설정
+        legend.setTextSize(11f); // 범례 텍스트 크기 설정
         legend.setTextColor(Color.BLACK); // 범례 텍스트 색상
         legend.setForm(Legend.LegendForm.CIRCLE); // 범례 모양 (원형)
-        legend.setXEntrySpace(20f); // 항목 간 간격 (좌우)
-        legend.setYEntrySpace(10f); // 항목 간 간격 (상하)
-        legend.setOrientation(Legend.LegendOrientation.HORIZONTAL); // 가로 정렬
-        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.CENTER); // 가로 중앙 정렬
-        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM); // 아래쪽 정렬
+        legend.setXEntrySpace(10f); // 항목 간 간격 (좌우)
+        legend.setYEntrySpace(5f); // 항목 간 간격 (상하)
+        legend.setOrientation(Legend.LegendOrientation.VERTICAL); // 가로 정렬
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM);
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.CENTER);
     }
 
 }

@@ -32,6 +32,7 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.io.File;
@@ -75,6 +76,9 @@ public class MainActivity extends AppCompatActivity implements
         applySelectedFont(prefs);
 
         super.onCreate(savedInstanceState);
+
+        // ⭐ Firebase 초기화 추가
+        FirebaseApp.initializeApp(this);
 
         authHelper = new AuthHelper(this);
         firestoreHelper = new FirestoreHelper();
