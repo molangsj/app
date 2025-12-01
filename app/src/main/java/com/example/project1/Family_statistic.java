@@ -265,49 +265,102 @@ public class Family_statistic extends Fragment {
 
             String label;
             switch (pillType) {
-                case 101: label = "감기약"; break;
-                case 102: label = "해열제"; break;
-                case 103: label = "심장약"; break;
-                case 104: label = "위장약"; break;
-                case 105: label = "진통제"; break;
-                case 106: label = "항생제"; break;
-                case 107: label = "피임약"; break;
-                case 108: label = "항우울제"; break;
-                case 109: label = "항암제"; break;
-                case 110: label = "정신과약"; break;
-                case 111: label = "당뇨병약"; break;
-                case 112: label = "고혈압약"; break;
-                case 113: label = "호흡기약"; break;
-                case 201: label = "비타민"; break;
-                case 202: label = "유산균"; break;
-                case 203: label = "단백질보충제"; break;
-                case 204: label = "홍삼"; break;
-                case 205: label = "소화제"; break;
-                case 206: label = "오메가-3"; break;
-                case 207: label = "콜라겐"; break;
-                case 208: label = "철분제"; break;
-                case 209: label = "기타보조제"; break;
-                default: label = "기타약";
+                //처방약
+                case 101:
+                    label = "감기약";
+                    break;
+                case 102:
+                    label = "해열제";
+                    break;
+                case 103:
+                    label = "심장 약";
+                    break;
+                case 104:
+                    label = "위장 약";
+                    break;
+                case 105:
+                    label = "진통제";
+                    break;
+                case 106:
+                    label = "항생제";
+                    break;
+                case 107:
+                    label = "피임약";
+                    break;
+                case 108:
+                    label = "항우울제";
+                    break;
+                case 109:
+                    label = "항암제";
+                    break;
+                case 110:
+                    label = "정신과 약";
+                    break;
+                case 111:
+                    label = "당뇨병 약";
+                    break;
+                case 112:
+                    label = "고혈압 약";
+                    break;
+                case 113:
+                    label = "호흡기 약";
+                    break;
+// 보조제
+                case 201:
+                    label = "비타민";
+                    break;
+                case 202:
+                    label = "유산균";
+                    break;
+                case 203:
+                    label = "단백질 보충제";
+                    break;
+                case 204:
+                    label = "홍삼";
+                    break;
+                case 205:
+                    label = "소화제";
+                    break;
+                case 206:
+                    label = "오메가-3";
+                    break;
+                case 207:
+                    label = "콜라겐";
+                    break;
+                case 208:
+                    label = "철분제";
+                    break;
+                case 209:
+                    label = "기타 보조제";
+                    break;
+                default:
+                    label = "기타약";
             }
 
             entries.add(new PieEntry(count, label));
+            Log.d("PieChart", "PieEntry added: label = " + label + ", count = " + count);
         }
 
+        // PieDataSet 생성
         PieDataSet dataSet = new PieDataSet(entries, "");
-        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+        dataSet.setColors(ColorTemplate.MATERIAL_COLORS); // 색상 설정
+        dataSet.setValueTextSize(16f); // 비율 글씨 크기
+        dataSet.setValueTextColor(Color.BLACK); // 비율 글씨 색상
 
-        // 퍼센트를 슬라이스 내부에만 표시
-        dataSet.setValueTextSize(10f);
-        dataSet.setValueTextColor(Color.BLACK);
-        dataSet.setYValuePosition(PieDataSet.ValuePosition.INSIDE_SLICE);
+        // 약 이름 설정
+        pieChart.setEntryLabelColor(Color.BLACK); // 약 이름 색상
+        pieChart.setEntryLabelTextSize(18f);// 약 이름 글씨 크기
+
+        // 비율 값을 슬라이스 내부에 배치
+        dataSet.setValueLinePart1OffsetPercentage(150f); // 슬라이스와 값 사이의 거리
+        dataSet.setValueLinePart1Length(0.2f); // 첫 번째 선 길이
+        dataSet.setValueLinePart2Length(0.4f); // 두 번째 선 길이
+        dataSet.setYValuePosition(PieDataSet.ValuePosition.INSIDE_SLICE); // 비율 위치 (슬라이스 내부)
 
         // PieData 생성 및 설정
         PieData data = new PieData(dataSet);
-        data.setValueFormatter(new PercentFormatter(pieChart));
+        data.setValueFormatter(new PercentFormatter(pieChart)); // 비율 포맷
         pieChart.setData(data);
-
-        // 약 이름을 슬라이스에서 제거 (범례에만 표시)
-        pieChart.setDrawEntryLabels(false);
 
         // 차트 갱신
         pieChart.invalidate();
@@ -321,18 +374,21 @@ public class Family_statistic extends Fragment {
         pieChart.setTransparentCircleRadius(50f);
         pieChart.setHoleRadius(40f);
         pieChart.setRotationEnabled(true);
-        //pieChart.setEntryLabelTextSize(12f);
-
+        pieChart.setEntryLabelTextSize(12f);
 
         Legend legend = pieChart.getLegend();
-        legend.setTextSize(11f); // 범례 텍스트 크기 설정
-        legend.setTextColor(Color.BLACK); // 범례 텍스트 색상
-        legend.setForm(Legend.LegendForm.CIRCLE); // 범례 모양 (원형)
-        legend.setXEntrySpace(10f); // 항목 간 간격 (좌우)
-        legend.setYEntrySpace(5f); // 항목 간 간격 (상하)
-        legend.setOrientation(Legend.LegendOrientation.VERTICAL); // 가로 정렬
-        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM);
-        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.CENTER);
+        legend.setEnabled(true);
+        legend.setTextSize(12f); // 글자 크기 줄임
+        legend.setTextColor(Color.BLACK);
+        legend.setForm(Legend.LegendForm.CIRCLE);
+        legend.setFormSize(8f); // 범례 아이콘 크기
+        legend.setXEntrySpace(7f); // 항목 간 가로 간격
+        legend.setYEntrySpace(5f); // 항목 간 세로 간격
+        legend.setOrientation(Legend.LegendOrientation.VERTICAL); // 세로 정렬
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.BOTTOM); // 아래쪽 배치
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.CENTER); // 가로 중앙 정렬
+        legend.setDrawInside(false); // 차트 밖에 배치
+        legend.setWordWrapEnabled(true); // 텍스트 줄바꿈 활성화
     }
 
 }
